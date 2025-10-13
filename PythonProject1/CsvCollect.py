@@ -34,7 +34,8 @@ merged_df = pd.concat(dfs, ignore_index=True)
 merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()]
 
 # 输出路径
-output_path = r"D:\PychamProject\PythonProject1\merged_clean_v3.csv"
+output_path = r"D:\PychamProject\PythonProject1\merged.csv"
 merged_df.to_csv(output_path, index=False, encoding="utf-8-sig")
 
 print(f"finish: {output_path}")
+
