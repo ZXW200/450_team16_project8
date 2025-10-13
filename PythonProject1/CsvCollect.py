@@ -1,18 +1,18 @@
 import pandas as pd
 
 files = [
-    r"D:\PychamProject\PythonProject1\data\Chagas_disease.csv",
-    r"D:\PychamProject\PythonProject1\data\cysticercosis.csv",
-    r"D:\PychamProject\PythonProject1\data\Human_African_trypanosomiasis.csv",
-    r"D:\PychamProject\PythonProject1\data\Leprosy.csv",
-    r"D:\PychamProject\PythonProject1\data\Lymphatic_filariasis.csv",
-    r"D:\PychamProject\PythonProject1\data\Onchocerciasis.csv",
-    r"D:\PychamProject\PythonProject1\data\Schistosomiasis.csv",
-    r"D:\PychamProject\PythonProject1\data\Soil_transmitted_helminthiases.csv",
-    r"D:\PychamProject\PythonProject1\data\Taeniasis.csv",
-    r"D:\PychamProject\PythonProject1\data\Trachoma.csv",
-    r"D:\PychamProject\PythonProject1\data\Visceral_leishmaniasis.csv",
-    r"D:\PychamProject\PythonProject1\data\Yaws.csv"
+    r"data\Chagas_disease.csv",
+    r"data\cysticercosis.csv",
+    r"data\Human_African_trypanosomiasis.csv",
+    r"data\Leprosy.csv",
+    r"data\Lymphatic_filariasis.csv",
+    r"data\Onchocerciasis.csv",
+    r"data\Schistosomiasis.csv",
+    r"data\Soil_transmitted_helminthiases.csv",
+    r"data\Taeniasis.csv",
+    r"data\Trachoma.csv",
+    r"data\Visceral_leishmaniasis.csv",
+    r"data\Yaws.csv"
 ]
 
 dfs = []
@@ -34,8 +34,9 @@ merged_df = pd.concat(dfs, ignore_index=True)
 merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()]
 
 # 输出路径
-output_path = r"D:\PychamProject\PythonProject1\merged.csv"
+output_path = r"merged.csv"
 merged_df.to_csv(output_path, index=False, encoding="utf-8-sig")
 
 print(f"finish: {output_path}")
+
 
