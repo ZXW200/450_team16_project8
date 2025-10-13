@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # 输入/输出路径
-input_path = r"D:\PychamProject\PythonProject1\merged_clean_v3.csv"
+input_path = r"D:\PychamProject\PythonProject1\merged.csv"
 output_path = r"D:\PychamProject\PythonProject1\merged_1993_2023.csv"
 
 # 读取数据
@@ -23,3 +23,4 @@ filtered.to_csv(output_path, index=False, encoding="utf-8-sig")
 
 print("success:", output_path)
 print("result:", len(filtered))
+
