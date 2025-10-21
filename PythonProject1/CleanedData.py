@@ -21,7 +21,7 @@ df = df[df['TrialID'].notna() & df['Year'].notna()]
 # print("\nStep 3: 填充缺失值...")
 # 对分类变量，用'Unknown'填充缺失值
 categorical_cols = ['Condition', 'Countries', 'Primary sponsor', 'Phase',
-                    'Study type', 'Recruitment Status', 'results yes no']
+                    'Study type', 'Recruitment Status']
 missing_counts = {}
 for col in categorical_cols:
     if col in df.columns:
@@ -29,7 +29,8 @@ for col in categorical_cols:
         if missing_count > 0:
             missing_counts[col] = missing_count
         df[col] = df[col].fillna('Unknown')
-
+if 'results yes no' in df.columns:
+  df['results yes no']= df['results yes no'].fillna('No')
 # if missing_counts:
 #     for col, count in missing_counts.items():
 #         print(f"   {col}: 填充 {count} 个缺失值")
@@ -163,3 +164,4 @@ both.to_csv('CleanedData/trials_with_both.csv', index=False, encoding='utf-8')
 # print(f"  只包含孕妇: {len(pregnant_only)} ({len(pregnant_only) / len(df) * 100:.1f}%)")
 # print(f"  同时包含: {len(both)} ({len(both) / len(df) * 100:.1f}%)")
 # print(f"  总计: {len(children_only) + len(pregnant_only) + len(both)} ({(len(children_only) + len(pregnant_only) + len(both)) / len(df) * 100:.1f}%)")
+
