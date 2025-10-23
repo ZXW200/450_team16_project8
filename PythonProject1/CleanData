@@ -1,0 +1,227 @@
+import pandas as pd
+import os
+
+
+#print("Start")
+
+
+#1：合并
+#print("1")
+
+# 所有需要读取的文件列表
+files = [
+    "data/Chagas_disease.csv",
+    "data/cysticercosis.csv",
+    "data/Human_African_trypanosomiasis.csv",
+    "data/Leprosy.csv",
+    "data/Lymphatic_filariasis.csv",
+    "data/Onchocerciasis.csv",
+    "data/Schistosomiasis.csv",
+    "data/Soil_transmitted_helminthiases.csv",
+    "data/Taeniasis.csv",
+    "data/Trachoma.csv",
+    "data/Visceral_leishmaniasis.csv",
+    "data/Yaws.csv"
+]
+
+# 创建一个空列表，用来存储所有读取的数据
+all_data = []
+
+# 逐个读取文件
+for file_path in files:
+        data = pd.read_csv(file_path, on_bad_lines="skip", encoding="utf-8")
+        all_data.append(data)
+        #print(f" 成功读取: {file_path}")
+
+# 合并所有数据
+df = pd.concat(all_data, ignore_index=True)
+#print(f"\n合并后数据: {len(df)} 行, {len(df.columns)} 列")
+
+#2：提取年份
+#print("2")
+
+# 将日期字符串转换为日期格式
+df["Date registration"] = pd.to_datetime(df["Date registration"], 
+                                          errors="coerce", 
+                                          dayfirst=True)
+
+# 从日期中提取年份
+df["Year"] = df["Date registration"].dt.year
+
+# 只保留1993-2023年的数据
+df = df[(df["Year"] >= 1993) & (df["Year"] <= 2023)]
+#print(f"保留1993-2023年数据: {len(df)} 行")
+
+# 保存合并后带年份的表格
+df.to_csv("merged.csv", index=False, encoding="utf-8-sig")
+#print(f"已保存合并表格: merged.csv ({len(df)} 行)")
+
+# 3：删除重复和缺失
+#print("3")
+
+# 删除重复的试验ID
+before = len(df)
+df = df.drop_duplicates(subset=["TrialID"], keep="first")
+#print(f"  删除重复记录: {before - len(df)} 条")
+
+# 删除没有ID或年份的记录
+before = len(df)
+df = df[df["TrialID"].notna() & df["Year"].notna()]
+#print(f"删除缺失记录: {before - len(df)} 条")
+#print(f"剩余记录: {len(df)} 条")
+
+#4：填充空值
+#print("4.")
+
+# 需要填充的字段
+fill_fields = ["Condition", "Countries", "Primary sponsor", 
+               "Phase", "Study type", "Recruitment Status"]
+
+# 用"Unknown"填充空值
+for field in fill_fields:
+    if field in df.columns:
+        df[field] = df[field].fillna("Unknown")
+
+# results yes no 用 "No" 填充
+if "results yes no" in df.columns:
+    df["results yes no"] = df["results yes no"].fillna("No")
+
+# Target size 用中位数填充
+if "Target size" in df.columns:
+    df["Target size"] = pd.to_numeric(df["Target size"], errors="coerce")
+    middle_value = df["Target size"].median()
+    df["Target size"] = df["Target size"].fillna(middle_value)
+
+#print("填充完成")
+
+#5：判断是否包含儿童
+#print("5")
+
+def get_age_in_years(age_text):
+    #把年龄文本转换为数字（单位：年）
+    if pd.isna(age_text):
+        return None
+    
+    # 转为小写
+    age_text = str(age_text).lower()
+    
+    # 提取数字
+    numbers = ""
+    for char in age_text:
+        if char.isdigit():
+            numbers += char
+    
+    if not numbers:
+        return None
+    
+    age = int(numbers)
+    
+    # 转换单位
+    if "month" in age_text:  # 月
+        age = age / 12
+    elif "week" in age_text:  # 周
+        age = age / 52
+    elif "day" in age_text:  # 天
+        age = age / 365
+    
+    return age
+
+# 计算最小年龄
+if "Inclusion agemin" in df.columns:
+    df["Min_Age"] = df["Inclusion agemin"].apply(get_age_in_years)
+    
+    # 判断是否包含儿童（小于18岁）
+    df["Includes_Children"] = "Unknown"
+    df.loc[df["Min_Age"] < 18, "Includes_Children"] = "Yes"
+    df.loc[df["Min_Age"] >= 18, "Includes_Children"] = "No"
+    
+    yes_count = sum(df["Includes_Children"] == "Yes")
+    no_count = sum(df["Includes_Children"] == "No")
+    unknown_count = sum(df["Includes_Children"] == "Unknown")
+    
+  #  print(f"包含儿童: {yes_count} 项")
+   # print(f"不包含儿童: {no_count} 项")
+  #  print(f"未知: {unknown_count} 项")
+else:
+    df["Includes_Children"] = "Unknown"
+   # print("未找到年龄字段")
+
+# 6：判断是否包含孕妇
+#print("6")
+
+# 孕妇相关关键词
+pregnant_words = ["pregnant", "pregnancy", "gravid", "gestation", "expecting"]
+
+if "Inclusion Criteria" in df.columns and "Exclusion Criteria" in df.columns:
+    # 获取纳入和排除标准（转为小写）
+    inclusion_text = df["Inclusion Criteria"].fillna("").str.lower()
+    exclusion_text = df["Exclusion Criteria"].fillna("").str.lower()
+    
+    # 检查纳入标准中是否提到孕妇
+    in_inclusion = inclusion_text.apply(
+        lambda text: any(word in text for word in pregnant_words)
+    )
+    
+    # 检查排除标准中是否提到孕妇
+    in_exclusion = exclusion_text.apply(
+        lambda text: any(word in text for word in pregnant_words)
+    )
+    
+    # 判断逻辑
+    df["Includes_Pregnant"] = "Unknown"
+    df.loc[in_inclusion, "Includes_Pregnant"] = "Yes"
+    df.loc[in_exclusion & ~in_inclusion, "Includes_Pregnant"] = "No"
+    
+    yes_count = sum(df["Includes_Pregnant"] == "Yes")
+    no_count = sum(df["Includes_Pregnant"] == "No")
+    unknown_count = sum(df["Includes_Pregnant"] == "Unknown")
+    
+  #  print(f"包含孕妇: {yes_count} 项")
+  #  print(f"不包含孕妇: {no_count} 项")
+   # print(f"未知: {unknown_count} 项")
+else:
+    df["Includes_Pregnant"] = "Unknown"
+  # print("未找到纳入/排除标准字段")
+
+#步骤7：保存文件
+#print("7")
+
+# 创建保存文件夹
+os.makedirs("CleanedData", exist_ok=True)
+
+# 1. 保存完整数据
+df.to_csv("CleanedData/cleaned_ntd.csv", index=False, encoding="utf-8-sig")
+#print(f"完整数据: {len(df)} 条")
+
+# 2. 只包含儿童（不包含孕妇）
+children_only = df[(df["Includes_Children"] == "Yes") & 
+                   (df["Includes_Pregnant"] != "Yes")]
+children_only.to_csv("CleanedData/children_only.csv", 
+                     index=False, encoding="utf-8-sig")
+#print(f"只包含儿童: {len(children_only)} 条")
+
+# 3. 只包含孕妇（不包含儿童）
+pregnant_only = df[(df["Includes_Pregnant"] == "Yes") & 
+                   (df["Includes_Children"] != "Yes")]
+pregnant_only.to_csv("CleanedData/pregnant_only.csv", 
+                     index=False, encoding="utf-8-sig")
+#print(f"只包含孕妇: {len(pregnant_only)} 条")
+
+# 4. 同时包含儿童和孕妇
+both = df[(df["Includes_Children"] == "Yes") & 
+          (df["Includes_Pregnant"] == "Yes")]
+both.to_csv("CleanedData/Children_Pregnant.csv", 
+            index=False, encoding="utf-8-sig")
+#print(f"同时包含儿童和孕妇: {len(both)} 条")
+
+# 结果汇总
+print("Result")
+print("\n" + "="*60)
+print("Cleaned Finish！")
+print("="*60)
+print(f"Duration: {int(df['Year'].min())} - {int(df['Year'].max())}")
+print(f"All: {len(df)}")
+print(f"Only included Children : {len(children_only)} ")
+print(f"Only included pregnant : {len(pregnant_only)} ")
+print(f"Both have Children and pregnant : {len(both)} ")
+print("\nAll CleanedData save in CleanedData/ ")
