@@ -184,3 +184,136 @@ for field in html_fields:
         df[field] = df[field].apply(clean_html_tags)
 
 # print(f"已清洗 {len([f for f in html_fields if f in df.columns])} 个文本字段的HTML标签")
+
+
+# 步骤5：标准化国家名称
+# print("5. 标准化国家名称")
+
+# 国家名称标准化映射表
+country_mapping = {
+    # 常见缩写
+    'USA': 'United States',
+    'US': 'United States',
+    'U.S.': 'United States',
+    'U.S.A.': 'United States',
+    'UK': 'United Kingdom',
+    'U.K.': 'United Kingdom',
+    'UAE': 'United Arab Emirates',
+
+    # 非标准名称
+    "Cote d'Ivoire": 'Ivory Coast',
+    "Côte d'Ivoire": 'Ivory Coast',
+    'Congo (Brazzaville)': 'Republic of the Congo',
+    'Congo (Kinshasa)': 'Democratic Republic of the Congo',
+    'Congo, The Democratic Republic of the': 'Democratic Republic of the Congo',
+
+    # 其他变体
+    'Russian Federation': 'Russia',
+    'Republic of Korea': 'South Korea',
+    'Korea, Republic of': 'South Korea',
+    "Democratic People's Republic of Korea": 'North Korea',
+    'Viet Nam': 'Vietnam',
+    'Iran, Islamic Republic of': 'Iran',
+    'Venezuela, Bolivarian Republic of': 'Venezuela',
+    'Tanzania, United Republic of': 'Tanzania',
+    'Syrian Arab Republic': 'Syria',
+    "Lao People's Democratic Republic": 'Laos',
+    'Myanmar': 'Myanmar',
+    'Burma': 'Myanmar',
+}
+
+
+def standardize_country(country_text):
+    """标准化国家名称"""
+    if pd.isna(country_text):
+        return country_text
+
+    country_text = str(country_text).strip()
+
+    # 处理多个国家的情况（用分号或逗号分隔）
+    if ';' in country_text or ',' in country_text:
+        separator = ';' if ';' in country_text else ','
+        countries = [c.strip() for c in country_text.split(separator)]
+        standardized = [country_mapping.get(c, c) for c in countries]
+        return ';'.join(standardized)
+
+    # 单个国家
+    return country_mapping.get(country_text, country_text)
+
+
+if 'countries' in df.columns:
+    before_unique = df['countries'].nunique()
+    df['countries'] = df['countries'].apply(standardize_country)
+    after_unique = df['countries'].nunique()
+    # print(f"国家名称标准化: {before_unique} → {after_unique} 个不同国家")
+
+if 'country_codes' in df.columns:
+    df['country_codes'] = df['country_codes'].str.strip().str.upper()
+
+# 步骤6：异常值检测和处理
+# print("6. 异常值检测和处理")
+
+outliers_removed = 0
+
+# 6.1 样本量异常值检测
+if 'target_sample_size' in df.columns:
+    df['target_sample_size'] = pd.to_numeric(df['target_sample_size'], errors='coerce')
+
+    # 删除不合理的样本量（<=0 或 >1000000）
+    before = len(df)
+    df = df[(df['target_sample_size'].isna()) |
+            ((df['target_sample_size'] > 0) & (df['target_sample_size'] <= 1000000))]
+    removed = before - len(df)
+    outliers_removed += removed
+    # print(f"  样本量异常值: 删除 {removed} 条")
+
+
+# 6.2 年龄异常值检测
+def validate_age(age_text):
+    """验证年龄是否合理"""
+    if pd.isna(age_text):
+        return True
+
+    age_text = str(age_text).lower()
+
+    # 提取数字
+    numbers = re.findall(r'\d+', age_text)
+    if not numbers:
+        return True
+
+    age = int(numbers[0])
+
+    # 根据单位判断是否合理
+    if 'year' in age_text or 'y' in age_text:
+        return 0 <= age <= 120
+    elif 'month' in age_text:
+        return 0 <= age <= 1440  # 120年
+    elif 'day' in age_text or 'week' in age_text:
+        return True  # 天和周通常是合理的
+
+    return 0 <= age <= 120
+
+
+if 'inclusion_age_min' in df.columns:
+    before = len(df)
+    df = df[df['inclusion_age_min'].apply(validate_age)]
+    removed = before - len(df)
+    outliers_removed += removed
+    # print(f"  年龄异常值: 删除 {removed} 条")
+
+# 6.3 日期逻辑异常检测
+if 'date_registration' in df.columns and 'date_enrollment' in df.columns:
+    date_reg = pd.to_datetime(df['date_registration'], errors='coerce')
+    date_enroll = pd.to_datetime(df['date_enrollment'], errors='coerce')
+
+    # 删除入组日期早于注册日期的记录（逻辑错误）
+    before = len(df)
+    invalid_dates = (date_enroll.notna()) & (date_reg.notna()) & (date_enroll < date_reg)
+    df = df[~invalid_dates]
+    removed = before - len(df)
+    outliers_removed += removed
+    # print(f"  日期逻辑异常: 删除 {removed} 条")
+
+print(f" del error{outliers_removed} ")
+
+
