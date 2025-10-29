@@ -315,5 +315,228 @@ if 'date_registration' in df.columns and 'date_enrollment' in df.columns:
     # print(f"  日期逻辑异常: 删除 {removed} 条")
 
 print(f" del error{outliers_removed} ")
+# 步骤7：删除联系人等敏感信息
+# print("7. 删除联系人等敏感信息")
 
+# 要删除的敏感字段列表
+sensitive_fields = [
+    'contact_affiliation',  # 联系人单位
+    'secondary_sponsor',  # 次要赞助商（可能包含个人信息）
+    'web_address',  # 网址（根据需求可选）
+    'results_url_link',  # 结果链接
+]
+
+removed_fields = []
+for field in sensitive_fields:
+    if field in df.columns:
+        df = df.drop(field, axis=1)
+        removed_fields.append(field)
+
+
+# 步骤8：填充空值
+# print("8. 填充空值")
+
+# 需要填充的字段
+fill_fields = ["standardised_condition", "countries", "primary_sponsor",
+               "phase", "study_type", "centre"]
+
+# 用"Unknown"填充空值
+for field in fill_fields:
+    if field in df.columns:
+        df[field] = df[field].fillna("Unknown")
+
+# results_ind 用 "No" 填充
+if "results_ind" in df.columns:
+    df["results_ind"] = df["results_ind"].fillna("No")
+
+# target_sample_size 用中位数填充
+if "target_sample_size" in df.columns:
+    middle_value = df["target_sample_size"].median()
+    df["target_sample_size"] = df["target_sample_size"].fillna(middle_value)
+
+
+# print("填充完成")
+
+# 步骤9：判断是否包含儿童
+# print("9. 判断是否包含儿童")
+
+def get_age_in_years(age_text):
+    """把年龄文本转换为数字（单位：年）"""
+    if pd.isna(age_text):
+        return None
+
+    # 转为小写
+    age_text = str(age_text).lower()
+
+    # 提取数字
+    numbers = ""
+    for char in age_text:
+        if char.isdigit():
+            numbers += char
+
+    if not numbers:
+        return None
+
+    age = int(numbers)
+
+    # 转换单位
+    if "month" in age_text:  # 月
+        age = age / 12
+    elif "week" in age_text:  # 周
+        age = age / 52
+    elif "day" in age_text:  # 天
+        age = age / 365
+
+    return age
+
+
+# 计算最小年龄
+if "inclusion_age_min" in df.columns:
+    df["Min_Age"] = df["inclusion_age_min"].apply(get_age_in_years)
+
+    # 判断是否包含儿童（小于18岁）
+    df["Includes_Children"] = "Unknown"
+    df.loc[df["Min_Age"] < 18, "Includes_Children"] = "Yes"
+    df.loc[df["Min_Age"] >= 18, "Includes_Children"] = "No"
+
+    yes_count = sum(df["Includes_Children"] == "Yes")
+    no_count = sum(df["Includes_Children"] == "No")
+    unknown_count = sum(df["Includes_Children"] == "Unknown")
+
+    # print(f"包含儿童: {yes_count} 项")
+    # print(f"不包含儿童: {no_count} 项")
+    # print(f"未知: {unknown_count} 项")
+else:
+    df["Includes_Children"] = "Unknown"
+    # print("未找到年龄字段")
+
+# 步骤10：判断是否包含孕妇
+# print("10. 判断是否包含孕妇")
+
+# 孕妇相关关键词
+pregnant_words = ["pregnant", "pregnancy", "gravid", "gestation", "expecting"]
+
+if "inclusion_criteria" in df.columns and "exclusion_criteria" in df.columns:
+    # 获取纳入和排除标准（转为小写）
+    inclusion_text = df["inclusion_criteria"].fillna("").str.lower()
+    exclusion_text = df["exclusion_criteria"].fillna("").str.lower()
+
+    # 检查纳入标准中是否提到孕妇
+    in_inclusion = inclusion_text.apply(
+        lambda text: any(word in text for word in pregnant_words)
+    )
+
+    # 检查排除标准中是否提到孕妇
+    in_exclusion = exclusion_text.apply(
+        lambda text: any(word in text for word in pregnant_words)
+    )
+
+    # 判断逻辑
+    df["Includes_Pregnant"] = "Unknown"
+    df.loc[in_inclusion, "Includes_Pregnant"] = "Yes"
+    df.loc[in_exclusion & ~in_inclusion, "Includes_Pregnant"] = "No"
+
+    yes_count = sum(df["Includes_Pregnant"] == "Yes")
+    no_count = sum(df["Includes_Pregnant"] == "No")
+    unknown_count = sum(df["Includes_Pregnant"] == "Unknown")
+
+    # print(f"包含孕妇: {yes_count} 项")
+    # print(f"不包含孕妇: {no_count} 项")
+    # print(f"未知: {unknown_count} 项")
+else:
+    df["Includes_Pregnant"] = "Unknown"
+    # print("未找到纳入/排除标准字段")
+
+# 步骤11：计算国家资助次数和疾病统计
+# print("11. 计算国家资助次数和疾病统计")
+
+# 添加赞助商国家字段 (使用顶部定义的函数和映射)
+df['Sponsor_Country'] = df['primary_sponsor'].apply(identify_country_sponsor)
+
+# 添加疾病缩写字段 (使用顶部定义的映射)
+df['Disease_Abbr'] = df['standardised_condition'].map(DISEASE_ABBREVIATIONS)
+
+# 统计国家资助次数和疾病
+sponsor_country_counts = df['Sponsor_Country'].value_counts()
+disease_counts = df['standardised_condition'].value_counts()
+
+# print(f"识别出 {df['Sponsor_Country'].nunique()} 个资助来源")
+# print(f"统计了 {df['standardised_condition'].nunique()} 种疾病")
+
+# 步骤12：保存文件
+# print("12. 保存文件")
+
+# 创建保存文件夹
+os.makedirs("CleanedData", exist_ok=True)
+
+# 1. 保存完整数据
+df.to_csv("CleanedData/cleaned_ictrp.csv", index=False, encoding="utf-8-sig")
+# print(f"完整数据: {len(df)} 条")
+
+# 2. 只包含儿童（不包含孕妇）
+children_only = df[(df["Includes_Children"] == "Yes") &
+                   (df["Includes_Pregnant"] != "Yes")]
+children_only.to_csv("CleanedData/children_only.csv",
+                     index=False, encoding="utf-8-sig")
+# print(f"只包含儿童: {len(children_only)} 条")
+
+# 3. 只包含孕妇（不包含儿童）
+pregnant_only = df[(df["Includes_Pregnant"] == "Yes") &
+                   (df["Includes_Children"] != "Yes")]
+pregnant_only.to_csv("CleanedData/pregnant_only.csv",
+                     index=False, encoding="utf-8-sig")
+# print(f"只包含孕妇: {len(pregnant_only)} 条")
+
+# 4. 同时包含儿童和孕妇
+both = df[(df["Includes_Children"] == "Yes") &
+          (df["Includes_Pregnant"] == "Yes")]
+both.to_csv("CleanedData/Children_Pregnant.csv",
+            index=False, encoding="utf-8-sig")
+# print(f"同时包含儿童和孕妇: {len(both)} 条")
+
+# 步骤13：生成统计报告
+# print("13. 生成统计报告")
+
+# 国家资助统计报告
+sponsor_stats = df.groupby('Sponsor_Country').agg({
+    'trial_id': 'count',
+    'target_sample_size': ['mean', 'median'],
+    'standardised_condition': lambda x: x.mode()[0] if len(x.mode()) > 0 else 'Unknown'
+}).round(2)
+sponsor_stats.columns = ['Funding_Count', 'Avg_Sample_Size', 'Median_Sample_Size', 'Main_Disease']
+sponsor_stats = sponsor_stats.sort_values('Funding_Count', ascending=False)
+sponsor_stats.to_csv('CleanedData/sponsor_country_statistics.csv', encoding='utf-8-sig')
+
+# 疾病统计报告
+disease_stats = df.groupby('standardised_condition').agg({
+    'trial_id': 'count',
+    'target_sample_size': ['mean', 'median'],
+    'Sponsor_Country': lambda x: x.mode()[0] if len(x.mode()) > 0 else 'Unknown',
+    'Includes_Children': lambda x: (x == 'Yes').sum()
+}).round(2)
+disease_stats.columns = ['Study_Count', 'Avg_Sample_Size', 'Median_Sample_Size', 'Main_Sponsor_Country',
+                         'Children_Studies_Count']
+disease_stats = disease_stats.sort_values('Study_Count', ascending=False)
+disease_stats.to_csv('CleanedData/disease_statistics.csv', encoding='utf-8-sig')
+
+# 国家-疾病交叉表
+cross_tab = pd.crosstab(df['Sponsor_Country'], df['standardised_condition'])
+cross_tab.to_csv('CleanedData/sponsor_disease_crosstab.csv', encoding='utf-8-sig')
+
+# 结果汇总
+print("\nResult")
+print("\n" + "=" * 60)
+print("Cleaned Finish！")
+print("=" * 60)
+print(f"Duration: {int(df['Year'].min())} - {int(df['Year'].max())}")
+print(f"All: {len(df)}")
+print(f"Only included Children: {len(children_only)} ")
+print(f"Only included Pregnant: {len(pregnant_only)} ")
+print(f"Both have Children and Pregnant: {len(both)} ")
+for i, (country, count) in enumerate(sponsor_country_counts.items(), 1):
+    print(f"  {i}. {country}: {count} ({count/len(df)*100:.1f}%)")
+print("="*60)
+for i, (disease, count) in enumerate(disease_counts.items(), 1):
+    print(f"  {i}. {disease}: {count} ({count/len(df)*100:.1f}%)")
+print("\nAll CleanedData saved in CleanedData/ ")
 
