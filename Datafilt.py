@@ -540,3 +540,135 @@ for i, (disease, count) in enumerate(disease_counts.items(), 1):
     print(f"  {i}. {disease}: {count} ({count/len(df)*100:.1f}%)")
 print("\nAll CleanedData saved in CleanedData/ ")
 
+#赞助商分类
+def classify_categories(sponsor_name):
+    #分3类：Industry, Government, Non-profit
+    if pd.isna(sponsor_name):
+        return "Unknown"
+
+    sponsor_upper = str(sponsor_name).upper()
+
+    if sponsor_upper in ['UNKNOWN', '']:
+        return "Unknown"
+
+    government_keywords = [
+        'MINISTRY', 'GOVERNMENT',
+        'NATIONAL INSTITUTE', 'NATIONAL RESEARCH',
+        'STATE INSTITUTE', 'PUBLIC HEALTH INSTITUTE',
+        'NIAID', 'CDC', 'NIH', 'DEPARTMENT', 'COUNCIL',
+        'FEDERAL INSTITUTE', 'RESEARCH COUNCIL','PUBLIQUE'
+    ]
+
+    # Industry（行业/商业）
+    industry_keywords = [
+        'PHARMA', 'BAYER', 'MERCK', 'ABBOTT', 'PFIZER', 'NOVARTIS',
+        'GSK', 'SANOFI', 'ROCHE', 'BIOTECH',
+        'INC', 'CORP', 'LTD', 'GMBH', ' AG', 'LLC','S.A','LIMITED'
+    ]
+
+    # Non-profit（非盈利）- 大学、医院、NGO、国际组织
+    nonprofit_keywords = [
+        # 基础
+        'UNIVERSITY', 'HOSPITAL', 'FOUNDATION', 'ACADEMY',
+        'INTERNATIONAL', 'INSTITUTE', 'ORGANIZATION', 'ORG','COLLEGE',
+        'INSTITUTO','INSTITUTO NACIONAL ','SCHOOL','CAMPUS','UNIVERSIDAD', 'UNIVERSIDADE','UNIVERSITÉ','UNIVERSITÄT',
+
+        # 联合国机构
+        'WHO', 'WORLD HEALTH ORGANIZATION',
+        'UNICEF', 'UNITED NATIONS CHILDREN',
+        'UNDP', 'UNITED NATIONS DEVELOPMENT',
+        'WORLD BANK',
+
+        # 知名基金会
+        'GATES FOUNDATION', 'BILL & MELINDA GATES', 'BMGF',
+        'WELLCOME TRUST', 'WELLCOME',
+        'ROCKEFELLER FOUNDATION',
+
+        # 医疗NGO
+        'DNDI', 'DRUGS FOR NEGLECTED DISEASES',
+        'MSF', 'MEDECINS SANS FRONTIERES', 'DOCTORS WITHOUT BORDERS',
+        'PATH',
+        'TDR', 'SPECIAL PROGRAMME FOR RESEARCH AND TRAINING',
+
+        # 疫苗和全球卫生
+        'GAVI', 'VACCINE ALLIANCE',
+        'GLOBAL FUND',
+        'PEPFAR','IDRI',
+
+        # 国际援助
+        'USAID', 'DFID', 'CIDA',
+
+        # 红十字会
+        'RED CROSS', 'RED CRESCENT',
+
+        # 通用词
+        'NGO', 'NON-PROFIT', 'NONPROFIT', 'CHARITY', 'TRUST'
+    ]
+
+    # 优先级：Government > Industry > Non-profit
+    # 首先检查Government（因为国家研究所优先级最高）
+    if any(keyword in sponsor_upper for keyword in government_keywords):
+        return "Government"
+
+    if any(keyword in sponsor_upper for keyword in industry_keywords):
+        return "Industry"
+
+    if any(keyword in sponsor_upper for keyword in nonprofit_keywords):
+        return "Non-profit"
+
+    return "Other"
+
+
+# 对所有赞助商分类
+df["sponsor_category"] = df["primary_sponsor"].apply(classify_categories)
+
+# 统计所有赞助商分类
+all_sponsor_counts = df["sponsor_category"].value_counts()
+
+print("\nAll Trials  Sponsor Classification :")
+for category, count in all_sponsor_counts.items():
+    pct = count / len(df) * 100
+    print(f"  {category}: {count} ({pct:.1f}%)")
+
+# 筛选已发表
+if "results_ind" in df.columns:
+    df["results_posted"] = df["results_ind"].str.upper().str.strip() == "YES"
+else:
+    df["results_posted"] = False
+
+published_df = df[df["results_posted"] == True].copy()
+unpublished_df = df[df["results_posted"] == False].copy()
+
+print(f"\nPublished: {len(published_df)} ({len(published_df) / len(df) * 100:.1f}%)")
+print(f"Unpublished: {len(unpublished_df)} ({len(unpublished_df) / len(df) * 100:.1f}%)")
+
+# 统计已发表的赞助商分类
+published_sponsor_counts = published_df["sponsor_category"].value_counts()
+print("\nPublished Trials  - Sponsor Classification:")
+for category, count in published_sponsor_counts.items():
+    pct = count / len(published_df) * 100
+    print(f"  {category}: {count} ({pct:.1f}%)")
+
+# 计算各类赞助商的发表率
+publication_rates = {}
+for category in all_sponsor_counts.index:
+    total_in_category = len(df[df["sponsor_category"] == category])
+    published_in_category = len(published_df[published_df["sponsor_category"] == category])
+    rate = (published_in_category / total_in_category * 100) if total_in_category > 0 else 0
+    publication_rates[category] = {
+        'total': total_in_category,
+        'published': published_in_category,
+        'rate': rate
+    }
+
+print("\nPublication Rate by Sponsor Category:")
+for category, stats in publication_rates.items():
+    print(f"{category}: {stats['published']}/{stats['total']} ({stats['rate']:.1f}%)")
+
+# 创建输出目录
+os.makedirs("/home/claude/sponsors_categories", exist_ok=True)
+
+# 保存分类结果
+df[['trial_id', 'primary_sponsor', 'sponsor_category', 'results_posted']].to_csv(r"CleanedData/all_trials_categories.csv",
+    index=False, encoding="utf-8-sig")
+
