@@ -665,8 +665,6 @@ print("\nPublication Rate by Sponsor Category:")
 for category, stats in publication_rates.items():
     print(f"{category}: {stats['published']}/{stats['total']} ({stats['rate']:.1f}%)")
 
-# 创建输出目录
-os.makedirs("/home/claude/sponsors_categories", exist_ok=True)
 
 # 保存分类结果
 df[['trial_id', 'primary_sponsor', 'sponsor_category', 'results_posted']].to_csv(r"CleanedData/all_trials_categories.csv",
