@@ -1,54 +1,31 @@
 import pandas as pd
 import os
 import re
-
-COUNTRY_KEYWORDS = {
-    'Brazil': ['BRAZIL', 'BRASIL', 'FIOCRUZ', 'SAO PAULO'],
-    'United States': ['USA', 'UNITED STATES', 'U.S.', 'NIH', 'CDC'],
-    'India': ['INDIA', 'INDIAN', 'NEW DELHI', 'MUMBAI'],
-    'United Kingdom': ['UK', 'UNITED KINGDOM', 'LONDON', 'OXFORD'],
-    'Netherlands': ['NETHERLANDS', 'DUTCH', 'AMSTERDAM'],
-    'Spain': ['SPAIN', 'SPANISH', 'BARCELONA', 'MADRID'],
-    'France': ['FRANCE', 'FRENCH', 'PARIS'],
-    'Germany': ['GERMANY', 'GERMAN', 'BERLIN'],
-    'Switzerland': ['SWITZERLAND', 'SWISS', 'GENEVA'],
-    'Belgium': ['BELGIUM', 'BELGIAN', 'BRUSSELS'],
+os.makedirs("CleanedData", exist_ok=True)
+# 国家代码映射表先获取的表根据表的代码填 Country code mapping
+COUNTRY_CODE = {
+    'BRA': 'Brazil','IND': 'India', 'ARG': 'Argentina','KEN': 'Kenya','TZA': 'Tanzania','ETH': 'Ethiopia','CIV': 'Côte d\'Ivoire',
+    'UGA': 'Uganda','ESP': 'Spain','USA': 'United States','BGD': 'Bangladesh','SDN': 'Sudan','CHN': 'China','BOL': 'Bolivia','COL': 'Colombia',
+    'SEN': 'Senegal','NLD': 'Netherlands','GBR': 'United Kingdom','LAO': 'Laos','CHE': 'Switzerland','PHL': 'Philippines','KHM': 'Cambodia','VNM': 'Vietnam',
+    'MEX': 'Mexico','NPL': 'Nepal','DEU': 'Germany','FRA': 'France','ZWE': 'Zimbabwe','BFA': 'Burkina Faso','MDG': 'Madagascar', 'IDN': 'Indonesia',
+    'ZMB': 'Zambia', 'EGY': 'Egypt', 'GHA': 'Ghana','GAB': 'Gabon', 'CHL': 'Chile', 'MOZ': 'Mozambique', 'THA': 'Thailand','CAN': 'Canada','ECU': 'Ecuador',
+    'TLS': 'Timor-Leste','FJI': 'Fiji','LKA': 'Sri Lanka','GTM': 'Guatemala','BEL': 'Belgium','GNB': 'Guinea-Bissau', 'MWI': 'Malawi','SLB': 'Solomon Islands','RWA': 'Rwanda',
+    'HTI': 'Haiti','NER': 'Niger','PER': 'Peru','VEN': 'Venezuela','LBR': 'Liberia','AUS': 'Australia','COD': 'DR Congo','HND': 'Honduras',
+    'CMR': 'Cameroon','ZAF': 'South Africa','MLI': 'Mali','SLV': 'El Salvador','MRT': 'Mauritania'
 }
-
-SPECIAL_ORGS = {
-    'DRUGS FOR NEGLECTED DISEASES': 'International',
-    'WHO': 'International',
-    'DNDI': 'International',
-    'BAYER': 'Germany',
-    'NOVARTIS': 'Switzerland',
-    'PFIZER': 'United States',
-    'GSK': 'United Kingdom',
-}
-
-
-def identify_country_sponsor(sponsor_name):
-    if pd.isna(sponsor_name):
-        return 'Unknown'
-    sponsor_name = str(sponsor_name).upper()
-    for org, country in SPECIAL_ORGS.items():
-        if org in sponsor_name:
-            return country
-    for country, keywords in COUNTRY_KEYWORDS.items():
-        for keyword in keywords:
-            if keyword in sponsor_name:
-                return country
-    return 'Other'
-
-
+# 赞助商分类 Sponsor classification
 def classify_categories(sponsor_name):
+    #根据赞助商名称分类为：政府、工业界、非营利组织或其他
     if pd.isna(sponsor_name) or str(sponsor_name).upper() in ['UNKNOWN', '']:
         return "Unknown"
     sponsor_upper = str(sponsor_name).upper()
 
-    government_keywords = ['MINISTRY', 'GOVERNMENT', 'NATIONAL INSTITUTE', 'CDC', 'NIH', 'DEPARTMENT','COUNCIL']
-    industry_keywords = ['PHARMA', 'INC', 'CORP', 'LTD', 'LLC','DIVISION','LIMITED','KGAA']
-    nonprofit_keywords = ['UNIVERSITY', 'HOSPITAL', 'FOUNDATION', 'INTERNATIONAL', 'NGO', 'TRUST','WHO', 'ORGANISATION',
-                          'INSTITUTE', 'INSTITUTIONAL','ACADEMY','DRUGS FOR NEGLECTED DISEASES INITIATIVE','DRUGS FOR NEGLECTED DISEASES','SCHOOL','ACADEMIC','IDRI','PATH']
+    government_keywords = ['MINISTRY', 'GOVERNMENT', 'NATIONAL INSTITUTE', 'CDC', 'NIH', 'DEPARTMENT', 'COUNCIL']
+    industry_keywords = ['PHARMA', 'INC', 'CORP', 'LTD', 'LLC', 'DIVISION', 'LIMITED', 'KGAA']
+    nonprofit_keywords = ['UNIVERSITY', 'HOSPITAL', 'FOUNDATION', 'INTERNATIONAL', 'NGO', 'TRUST', 'WHO',
+                          'ORGANISATION',
+                          'INSTITUTE', 'INSTITUTIONAL', 'ACADEMY', 'DRUGS FOR NEGLECTED DISEASES INITIATIVE',
+                          'DRUGS FOR NEGLECTED DISEASES', 'SCHOOL', 'ACADEMIC', 'IDRI', 'PATH']
 
     if any(k in sponsor_upper for k in government_keywords):
         return "Government"
@@ -58,20 +35,20 @@ def classify_categories(sponsor_name):
         return "Non-profit"
     return "Other"
 
-
+# 读取原始数据 Read raw data
 file_path = "ictrp_data.csv"
 df = pd.read_csv(file_path, on_bad_lines="skip", encoding="utf-8")
 print(f"raw data: {len(df)} 条")
 
-date_fields = ['date_registration', 'date_enrollment', 'results_date_completed', 'results_date_posted']
+# 处理日期字段 Process date fields
+date_fields = ['date_registration', 'date_enrollment']
 for field in date_fields:
     if field in df.columns:
         df[field] = pd.to_datetime(df[field], format='%Y-%m-%d', errors='coerce').dt.strftime('%Y-%m-%d')
-
+# 提取注册年份 Extract registration year
 df["Year"] = pd.to_datetime(df["date_registration"], format='%Y-%m-%d', errors="coerce").dt.year
 
-
-
+# 清理HTML标签函数 Clean HTML tags function
 def clean_html_tags(text):
     if pd.isna(text):
         return text
@@ -81,35 +58,18 @@ def clean_html_tags(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text if text else None
 
-
-html_fields = ["study_title", "inclusion_criteria", "exclusion_criteria", "standardised_condition"]
+#清除所选列名的html标签
+html_fields = [ "inclusion_criteria", "exclusion_criteria","primary_outcome","secondary_outcome"]
 for field in html_fields:
     if field in df.columns:
         df[field] = df[field].apply(clean_html_tags)
 
-country_mapping = {
-    'USA': 'United States', 'US': 'United States', 'UK': 'United Kingdom',
-    'Russian Federation': 'Russia', 'Viet Nam': 'Vietnam'
-}
 
 
-def standardize_country(country_text):
-    if pd.isna(country_text):
-        return country_text
-    country_text = str(country_text).strip()
-    if ';' in country_text or ',' in country_text:
-        separator = ';' if ';' in country_text else ','
-        countries = [c.strip() for c in country_text.split(separator)]
-        return ';'.join([country_mapping.get(c, c) for c in countries])
-    return country_mapping.get(country_text, country_text)
 
-
-if 'countries' in df.columns:
-    df['countries'] = df['countries'].apply(standardize_country)
-
-# print("\n异常值检测...")
+# # print("\n异常值检测...")
 outliers_removed = 0
-
+# 检测样本量异常值 Check sample size outliers 最大1000000最小大于0
 if 'target_sample_size' in df.columns:
     df['target_sample_size'] = pd.to_numeric(df['target_sample_size'], errors='coerce')
     before = len(df)
@@ -117,9 +77,9 @@ if 'target_sample_size' in df.columns:
             ((df['target_sample_size'] > 0) & (df['target_sample_size'] <= 1000000))]
     removed = before - len(df)
     outliers_removed += removed
-    # print(f"  样本量异常: 删除 {removed} 条")
+    # print(f"样本量异常: 删除 {removed} 条")
 
-
+# 年龄验证 Age validation
 def validate_age(age_text):
     if pd.isna(age_text):
         return True
@@ -128,22 +88,26 @@ def validate_age(age_text):
     if not numbers:
         return True
     age = int(numbers[0])
-    if 'year' in age_text or 'y' in age_text:
+    if 'year' in age_text or 'y'or'Y' in age_text:#年最大等于120 最小大于等于0
         return 0 <= age <= 120
-    elif 'month' in age_text:
+    elif 'month' in age_text or 'm'or'M' in age_text:#120*12 = 1440
         return 0 <= age <= 1440
     elif 'day' in age_text or 'week' in age_text:
         return True
     return 0 <= age <= 120
 
-
-if 'inclusion_age_min' in df.columns:
+# 检测年龄异常值 Check age outliers
+# 检查年龄逻辑是否合理 Check age logic validity
+if 'inclusion_age_min' in df.columns and 'inclusion_age_max' in df.columns:
     before = len(df)
+    # 检查最小和最大年龄都有效
     df = df[df['inclusion_age_min'].apply(validate_age)]
+    df = df[df['inclusion_age_max'].apply(validate_age)]
+    # 确保最小年龄 ≤ 最大年龄
+    df = df[(df['inclusion_age_min'] <= df['inclusion_age_max']) |
+    df['inclusion_age_min'].isna() | df['inclusion_age_max'].isna()]
     removed = before - len(df)
     outliers_removed += removed
-    # print(f"  年龄异常: 删除 {removed} 条")
-
 print(f"deleted in total {outliers_removed} ")
 #
 # print("\n删除敏感信息列...")
@@ -156,7 +120,6 @@ for field in sensitive_fields:
 
 if removed_fields:
     print(f"Delete: {', '.join(removed_fields)}")
-
 
 # print("\n填充空值...")
 fill_fields = ["standardised_condition", "countries", "primary_sponsor", "phase", "study_type"]
@@ -171,42 +134,7 @@ if "target_sample_size" in df.columns:
     median_value = df["target_sample_size"].median()
     df["target_sample_size"] = df["target_sample_size"].fillna(median_value)
     print(f"Fill in missing values of sample size with median: {median_value}")
-
-
-def get_age_in_years(age_text):
-    if pd.isna(age_text):
-        return None
-    age_text = str(age_text).lower()
-    numbers = ''.join(c for c in age_text if c.isdigit())
-    if not numbers:
-        return None
-    age = int(numbers)
-    if "month" in age_text:
-        age = age / 12
-    elif "week" in age_text:
-        age = age / 52
-    elif "day" in age_text:
-        age = age / 365
-    return age
-
-
-if "inclusion_age_min" in df.columns:
-    df["Min_Age"] = df["inclusion_age_min"].apply(get_age_in_years)
-    df["Includes_Children"] = "Unknown"
-    df.loc[df["Min_Age"] < 18, "Includes_Children"] = "Yes"
-    df.loc[df["Min_Age"] >= 18, "Includes_Children"] = "No"
-
-pregnant_words = ["pregnant", "pregnancy", "gravid", "gestation"]
-if "inclusion_criteria" in df.columns and "exclusion_criteria" in df.columns:
-    inclusion_text = df["inclusion_criteria"].fillna("").str.lower()
-    exclusion_text = df["exclusion_criteria"].fillna("").str.lower()
-    in_inclusion = inclusion_text.apply(lambda t: any(w in t for w in pregnant_words))
-    in_exclusion = exclusion_text.apply(lambda t: any(w in t for w in pregnant_words))
-    df["Includes_Pregnant"] = "Unknown"
-    df.loc[in_inclusion, "Includes_Pregnant"] = "Yes"
-    df.loc[in_exclusion & ~in_inclusion, "Includes_Pregnant"] = "No"
-
-df['Sponsor_Country'] = df['primary_sponsor'].apply(identify_country_sponsor)
+# 赞助商分类 Sponsor classification
 df["sponsor_category"] = df["primary_sponsor"].apply(classify_categories)
 
 all_sponsor_counts = df["sponsor_category"].value_counts()
@@ -214,28 +142,62 @@ print("\nSponsor Category Classification:")
 for category, count in all_sponsor_counts.items():
     print(f"  {category}: {count} ({count / len(df) * 100:.1f}%)")
 
+# 统计各国实验数量
+if 'country_codes' in df.columns:
+    # 处理多国家情况进行统计（只统计指定的国家）
+    country_list = []
+    for codes in df['country_codes'].dropna():
+        codes_str = str(codes).strip()
+        if '|' in codes_str:
+            codes = [c.strip() for c in codes_str.split('|')]
+        else:
+            codes = [codes_str]
+
+        # 只添加在字典中的国家
+        for code in codes:
+            code = code.upper()
+            if code in COUNTRY_CODE:
+                country_list.append(COUNTRY_CODE[code])
+
+    country_counts = pd.Series(country_list).value_counts()
+    # 保存完整的国家统计
+    country_counts.to_csv("CleanedData/country_statistics.csv", header=['count'], index_label='country', encoding="utf-8-sig")
+    print(f"\nTotal countries with trials: {len(country_counts)}")
+
 df["results_posted"] = df["results_ind"].str.upper().str.strip() == "YES"
 published_df = df[df["results_posted"] == True].copy()
+if 'country_codes' in published_df.columns:
+    published_country_list = []
+    for codes in published_df['country_codes'].dropna():
+        codes_str = str(codes).strip()
+        if '|' in codes_str:
+            codes = [c.strip() for c in codes_str.split('|')]
+        else:
+            codes = [codes_str]
 
+        # 只添加在字典中的国家
+        for code in codes:
+            code = code.upper()
+            if code in COUNTRY_CODE:
+                published_country_list.append(COUNTRY_CODE[code])
+
+    published_country_counts = pd.Series(published_country_list).value_counts()
+    published_country_counts.to_csv(f"CleanedData/published_country_statistics.csv",header=['count'], index_label='country', encoding="utf-8-sig")
 print(f"\nPublished: {len(published_df)} ({len(published_df) / len(df) * 100:.1f}%)")
 print(f"Unpublished: {len(df) - len(published_df)} ({(len(df) - len(published_df)) / len(df) * 100:.1f}%)")
-
-os.makedirs("CleanedData", exist_ok=True)
 
 df.to_csv("CleanedData/cleaned_ictrp.csv", index=False, encoding="utf-8-sig")
 published_df.to_csv("CleanedData/published_trials.csv", index=False, encoding="utf-8-sig")
 
-children_only = df[(df["Includes_Children"] == "Yes") & (df["Includes_Pregnant"] != "Yes")]
-pregnant_only = df[(df["Includes_Pregnant"] == "Yes") & (df["Includes_Children"] != "Yes")]
-both = df[(df["Includes_Children"] == "Yes") & (df["Includes_Pregnant"] == "Yes")]
-
-children_only.to_csv("CleanedData/children_only.csv", index=False, encoding="utf-8-sig")
-pregnant_only.to_csv("CleanedData/pregnant_only.csv", index=False, encoding="utf-8-sig")
-both.to_csv("CleanedData/Children_Pregnant.csv", index=False, encoding="utf-8-sig")
+# 根据 pregnant_participants 字段筛选孕妇相关试验
+if 'pregnant_participants' in df.columns:
+    pregnant_trials = df[df['pregnant_participants'].str.upper().str.strip() == 'INCLUDED'].copy()
+    pregnant_trials.to_csv("CleanedData/pregnant_trials.csv", index=False, encoding="utf-8-sig")
+    print(f"Pregnant Trials: {len(pregnant_trials)}")
+else:
+    print("Warning: 'pregnant_participants' column not found in data")
+    pregnant_trials = pd.DataFrame()
 
 print("\nData Cleaning Completed!")
 print(f"Time Range: {int(df['Year'].min())} - {int(df['Year'].max())}")
 print(f"Total Trials: {len(df)}")
-print(f"Children Only: {len(children_only)}")
-print(f"Pregnant Only: {len(pregnant_only)}")
-print(f"Children + Pregnant: {len(both)}")
