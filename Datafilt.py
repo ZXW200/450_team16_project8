@@ -103,9 +103,6 @@ if 'inclusion_age_min' in df.columns and 'inclusion_age_max' in df.columns:
     # 检查最小和最大年龄都有效
     df = df[df['inclusion_age_min'].apply(validate_age)]
     df = df[df['inclusion_age_max'].apply(validate_age)]
-    # 确保最小年龄 ≤ 最大年龄
-    df = df[(df['inclusion_age_min'] <= df['inclusion_age_max']) |
-    df['inclusion_age_min'].isna() | df['inclusion_age_max'].isna()]
     removed = before - len(df)
     outliers_removed += removed
 print(f"deleted in total {outliers_removed} ")
