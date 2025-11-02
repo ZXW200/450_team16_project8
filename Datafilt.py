@@ -13,6 +13,13 @@ COUNTRY_CODE = {
     'HTI': 'Haiti','NER': 'Niger','PER': 'Peru','VEN': 'Venezuela','LBR': 'Liberia','AUS': 'Australia','COD': 'DR Congo','HND': 'Honduras',
     'CMR': 'Cameroon','ZAF': 'South Africa','MLI': 'Mali','SLV': 'El Salvador','MRT': 'Mauritania'
 }
+#世界收入分类 World bank classification
+income_map = {
+    "Low": ['BFA','MDG','MOZ','TZA','KEN','ETH','UGA','ZWE','MWI','RWA','NER','LBR','COD','SDN','HTI','MRT','GNB','MLI'],
+    "Lower middle": ['IND','BGD','PHL','VNM','IDN','EGY','GHA','ZMB','CMR','NPL','KHM','LAO','LKA','TLS','HND','SLV','SEN','SLB'],
+    "Upper middle": ['CHN','BRA','MEX','COL','THA','ZAF','PER','ECU','GAB','ARG','VEN','BOL','CIV','GTM','FJI'],
+    "High": ['USA','GBR','DEU','FRA','ESP','NLD','CHE','CAN','AUS','BEL','CHL']
+}
 # 赞助商分类 Sponsor classification
 def classify_categories(sponsor_name):
     #根据赞助商名称分类为：政府、工业界、非营利组织或其他
@@ -133,7 +140,9 @@ if "target_sample_size" in df.columns:
     print(f"Fill in missing values of sample size with median: {median_value}")
 # 赞助商分类 Sponsor classification
 df["sponsor_category"] = df["primary_sponsor"].apply(classify_categories)
-
+##世界收入分类 Worldbank Classification
+df["income_level"] = df["country_codes"].apply(map_income)
+#统计赞助商分类占比
 all_sponsor_counts = df["sponsor_category"].value_counts()
 print("\nSponsor Category Classification:")
 for category, count in all_sponsor_counts.items():
