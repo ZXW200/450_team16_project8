@@ -89,12 +89,12 @@ print("✓ published_sponsor.png saved")
 industry_stats = pd.read_csv("CleanedData/country_Industry.csv", encoding="utf-8-sig")
 
 # 定义高负担国家列表 Define high-burden countries
-high_risk_countries = ['India', 'Mexico', 'Tanzania', 'Bangladesh', 'Bolivia',
+high_burden_countries = ['India', 'Mexico', 'Tanzania', 'Bangladesh', 'Bolivia',
                        'Côte d\'Ivoire', 'Kenya', 'Egypt']
 
 # 添加负担分类列 Add burden level column
 industry_stats['burden_level'] = industry_stats['country'].apply(
-    lambda x: 'High Burden' if x in high_risk_countries else 'Normal'
+    lambda x: 'High Burden' if x in high_burden_countries else 'Normal'
 )
 
 # 保存更新后的文件 Save updated file
