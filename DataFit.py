@@ -3,6 +3,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 
 # ===== 0. 路径与数据 =====
 os.makedirs("CleanedDataPlt", exist_ok=True)
@@ -12,10 +13,11 @@ df = pd.read_csv("CleanedData/cleaned_ictrp.csv")
 y = df["results_posted"].astype(int)
 feat_cat = ["phase","study_type","sponsor_category","income_level"]
 X = df[feat_cat].copy()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42,stratify=y)
 
 # 预处理 + 模型
 pre = ColumnTransformer([("cat", OneHotEncoder(handle_unknown="ignore"), feat_cat)])
-pipe = Pipeline([("pre", pre), ("lr", LogisticRegression(max_iter=2000))]).fit(X, y)
+pipe = Pipeline([("pre", pre), ("lr", LogisticRegression(max_iter=2000))]).fit(X_train, y_train)
 
 # 系数与特征名
 names = pipe.named_steps["pre"].get_feature_names_out()
