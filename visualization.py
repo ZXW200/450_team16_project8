@@ -84,6 +84,24 @@ plt.savefig('CleanedDataPlt/published_sponsor.png', dpi=300, bbox_inches='tight'
 plt.close()
 print("✓ published_sponsor.png saved")
 
+#Classfication high-risk country
+#read data
+industry_stats = pd.read_csv("CleanedData/country_Industry.csv", encoding="utf-8-sig")
 
+# 定义高风险国家列表 Define high-burden countries
+high_risk_countries = ['India', 'Mexico', 'Tanzania', 'Bangladesh', 'Bolivia',
+                       'Côte d\'Ivoire', 'Kenya', 'Egypt']
+
+# 添加风险分类列 Add risk level column
+industry_stats['risk_level'] = industry_stats['country'].apply(
+    lambda x: 'High Risk' if x in high_risk_countries else 'Normal'
+)
+
+# 保存更新后的文件 Save updated file
+industry_stats.to_csv("CleanedData/country_statistics_Industry_with_risk.csv",
+                      index=False, encoding="utf-8-sig")
+# draw table
+
+#
 
 print("\n所有图表生成完成！")
