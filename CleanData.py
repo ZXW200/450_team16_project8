@@ -42,6 +42,17 @@ def classify_categories(sponsor_name):
         return "Non-profit"
     return "Other"
 
+
+def map_income(code_str):
+    if pd.isna(code_str):
+        return "Unknown"
+    code = re.split(r'[|,;/\s]+', str(code_str).strip().upper())[0]
+    for lvl, codes in income_map.items():
+        if code in codes:
+            return lvl
+    return "Unknown"
+
+
 # 读取原始数据 Read raw data
 file_path = "ictrp_data.csv"
 df = pd.read_csv(file_path, on_bad_lines="skip", encoding="utf-8")
