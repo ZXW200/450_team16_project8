@@ -169,7 +169,28 @@ if 'country_codes' in df.columns:
     # 保存完整的国家统计
     country_counts.to_csv("CleanedData/country_statistics.csv", header=['count'], index_label='country', encoding="utf-8-sig")
     print(f"\nTotal countries with trials: {len(country_counts)}")
+    #按赞助商分类统计各国实验数量
+if 'country_codes' in df.columns and 'sponsor_category' in df.columns:
+    # 筛选Industry类别
+    industry_df = df[df['sponsor_category'] == 'Industry']
 
+    # 提取所有国家代码
+    industry_countries = []
+    for codes in industry_df['country_codes'].dropna():
+        for code in str(codes).upper().replace('|', ' ').split():
+            if code in COUNTRY_CODE:
+                industry_countries.append(COUNTRY_CODE[code])
+
+    # 统计并保存
+    if industry_countries:
+        pd.Series(industry_countries).value_counts().to_csv(
+            "CleanedData/country_Industry.csv",
+            header=['count'],
+            index_label='country',
+            encoding="utf-8-sig"
+        )
+        print(f"Industry: {len(industry_df)} trials across {len(set(industry_countries))} countries")
+        #统计已发表的国家
 df["results_posted"] = df["results_ind"].str.upper().str.strip() == "YES"
 published_df = df[df["results_posted"] == True].copy()
 if 'country_codes' in published_df.columns:
