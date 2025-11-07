@@ -1,3 +1,4 @@
+⚠️ Important Note: Please run the CleanData script before processing the data.
 📌 Project Overview
 
 Neglected Tropical Diseases (NTDs) affect more than one billion people globally, placing a disproportionate burden on socioeconomically disadvantaged populations. Despite their significant health impact, research on NTDs remains underfunded and underrepresented compared to other global health priorities.
