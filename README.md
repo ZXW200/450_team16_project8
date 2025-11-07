@@ -10,7 +10,8 @@ The dataset spans the period 1999–2023.
 ﻿
 
 📊 Data Source
-﻿
+
+ 
 The dataset originates from the World Health Organization’s (WHO) International Clinical Trials Registry Platform (ICTRP), which consolidates registrations from multiple national and international trial registries.
 Scope: All available NTD-related clinical trial records (1999–2023)
 Size: 315 studies
