@@ -37,7 +37,7 @@ results = pd.DataFrame({
     "odds_ratio": np.exp(model.coef_[0])
 })
 results = results.sort_values("coefficient", ascending=False)
-results.to_csv("CleanedDataPlt/logit_results.csv", index=False, encoding="utf-8-sig")
+results.to_csv("CleanedData/logit_results.csv", index=False, encoding="utf-8-sig")
 
 # 绘图
 # Plotting
@@ -92,4 +92,4 @@ for i, (title, prefix) in enumerate(groups.items()):
 # Save plot
 plt.tight_layout()
 plt.savefig("CleanedDataPlt/coefficients_plot.png", dpi=300, bbox_inches='tight')
-plt.show()
+# plt.show()
