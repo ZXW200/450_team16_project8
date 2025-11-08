@@ -34,7 +34,6 @@ model.fit(X_train, y_train)
 results = pd.DataFrame({
     "feature": X_encoded.columns,
     "coefficient": model.coef_[0],
-    "odds_ratio": np.exp(model.coef_[0])
 })
 results = results.sort_values("coefficient", ascending=False)
 results.to_csv("CleanedData/logit_results.csv", index=False, encoding="utf-8-sig")
