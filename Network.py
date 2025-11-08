@@ -58,7 +58,11 @@ degree_dict = dict(G.degree())
 #calculate weighted degree (total number of collaborations)
 weighted_degree = {}
 for node in G.nodes():
-    weighted_degree[node] = sum([G[node][neighbor]['weight'] for neighbor in G.neighbors(node)])
+    total_weight = 0
+    for neighbor in G.neighbors(node):#Iterate through all neighbors and accumulate their weights.
+                                    #遍历当前nodecountry的所有邻居，并累加它们的权重。
+        total_weight += G[node][neighbor]['weight']
+    weighted_degree[node] = total_weight
 
 # 计算中心性（哪个国家最核心）
 #calculate centrality (which country is the most central)
