@@ -78,7 +78,7 @@ def clean_html_tags(text):
     return text if text else None
 
 #清除所选列名的html标签 Clear the HTML tags of the selected column names
-html_fields = [ "inclusion_criteria", "exclusion_criteria","primary_outcome","secondary_outcome"]
+html_fields = [ "inclusion_criteria", "exclusion_criteria","primary_outcome","secondary_outcome","intervention"]
 for field in html_fields:
     if field in df.columns:
         df[field] = df[field].apply(clean_html_tags)
