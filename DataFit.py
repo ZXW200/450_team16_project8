@@ -16,7 +16,7 @@ y = df["results_posted"].astype(int)
 
 # 转换分类变量为哑变量 log can only handle numerical input
 # Convert categorical variables to dummy variables
-X_encoded = pd.get_dummies(X, drop_first=False)
+X_encoded = pd.get_dummies(X, drop_first=True)
 
 # 划分训练测试集
 # Split train and test sets
