@@ -107,9 +107,9 @@ def validate_age(age_text):
     if not numbers:
         return True
     age = int(numbers[0])
-    if 'year' in age_text or 'y'or'Y' in age_text:#年最大等于120 最小大于等于0
+    if 'year' in age_text or 'y'in age_text:#年最大等于120 最小大于等于0
         return 0 <= age <= 120
-    elif 'month' in age_text or 'm'or'M' in age_text:#120*12 = 1440
+    elif 'month' in age_text or 'm'in age_text:#120*12 = 1440
         return 0 <= age <= 1440
     elif 'day' in age_text or 'week' in age_text:
         return True
