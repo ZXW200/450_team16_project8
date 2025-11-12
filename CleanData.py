@@ -1,3 +1,5 @@
+#Version 1.12
+#Data 12.11.2025
 import pandas as pd
 import os
 import re
