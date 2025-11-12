@@ -56,4 +56,27 @@ plt.tight_layout()
 plt.savefig('CleanedDataPlt/sponsor_distribution.png', dpi=300, bbox_inches='tight')
 plt.close()
 
+industry_stats = pd.read_csv("CleanedData/country_Industry.csv", encoding="utf-8-sig")
+
+# 定义高负担国家列表 Define the list of high burden countries
+high_burden_countries = ['India', 'Mexico', 'Tanzania', 'Bangladesh', 'Bolivia',
+                       'Côte d\'Ivoire', 'Kenya', 'Egypt']
+
+# 添加负担分类列 Add burden classification column
+industry_stats['burden_level'] = industry_stats['country'].apply(
+    lambda x: 'High Burden' if x in high_burden_countries else 'Normal'
+)
+
+# 保存更新后的文件 Save
+industry_stats.to_csv("CleanedData/country_Industry_HighBurden.csv",
+                      index=False, encoding="utf-8-sig")
+burden_sum = industry_stats.groupby('burden_level')['count'].sum() # count burden level
+
+# 画图 plt
+fig, ax = plt.subplots(figsize=(10, 7))
+ax.pie(burden_sum.values, labels=burden_sum.index, autopct='%1.1f%%',
+       colors=['#e74c3c', '#3498db'], startangle=90)
+ax.set_title('Industry Trials by Region', fontsize=14, fontweight='bold')
+plt.savefig('CleanedDataPlt/industry_region.png', dpi=300, bbox_inches='tight')
+plt.close()
 print("✓ Figure saved successfully!")
