@@ -3,11 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-
+import os
 # 读取数据
 # Load data
 df = pd.read_csv("CleanedData/cleaned_ictrp.csv")
-
+os.makedirs("CleanedDataPlt", exist_ok=True)
 # 准备特征和目标变量
 # Prepare features and target variable
 features = ["phase", "study_type", "sponsor_category", "income_level"]
