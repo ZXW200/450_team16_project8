@@ -1,27 +1,11 @@
-#Version 1.13.3
+#Version 1.13.5
 #Data 13.11.2025
 import pandas as pd
 import os
 import re
+from Maping import COUNTRY_CODE, INCOME_MAP, SPONSOR_KEYWORDS
+
 os.makedirs("CleanedData", exist_ok=True)
-# 国家代码映射表 Country code mapping
-COUNTRY_CODE = {
-    'BRA': 'Brazil','IND': 'India', 'ARG': 'Argentina','KEN': 'Kenya','TZA': 'Tanzania','ETH': 'Ethiopia','CIV': 'Côte d\'Ivoire',
-    'UGA': 'Uganda','ESP': 'Spain','USA': 'United States','BGD': 'Bangladesh','SDN': 'Sudan','CHN': 'China','BOL': 'Bolivia','COL': 'Colombia',
-    'SEN': 'Senegal','NLD': 'Netherlands','GBR': 'United Kingdom','LAO': 'Laos','CHE': 'Switzerland','PHL': 'Philippines','KHM': 'Cambodia','VNM': 'Vietnam',
-    'MEX': 'Mexico','NPL': 'Nepal','DEU': 'Germany','FRA': 'France','ZWE': 'Zimbabwe','BFA': 'Burkina Faso','MDG': 'Madagascar', 'IDN': 'Indonesia',
-    'ZMB': 'Zambia', 'EGY': 'Egypt', 'GHA': 'Ghana','GAB': 'Gabon', 'CHL': 'Chile', 'MOZ': 'Mozambique', 'THA': 'Thailand','CAN': 'Canada','ECU': 'Ecuador',
-    'TLS': 'Timor-Leste','FJI': 'Fiji','LKA': 'Sri Lanka','GTM': 'Guatemala','BEL': 'Belgium','GNB': 'Guinea-Bissau', 'MWI': 'Malawi','SLB': 'Solomon Islands','RWA': 'Rwanda',
-    'HTI': 'Haiti','NER': 'Niger','PER': 'Peru','VEN': 'Venezuela','LBR': 'Liberia','AUS': 'Australia','COD': 'DR Congo','HND': 'Honduras',
-    'CMR': 'Cameroon','ZAF': 'South Africa','MLI': 'Mali','SLV': 'El Salvador','MRT': 'Mauritania'
-}
-#世界收入分类 World bank classification
-income_map = {
-    "Low": ['BFA','MDG','MOZ','TZA','KEN','ETH','UGA','ZWE','MWI','RWA','NER','LBR','COD','SDN','HTI','MRT','GNB','MLI'],
-    "Lower middle": ['IND','BGD','PHL','VNM','IDN','EGY','GHA','ZMB','CMR','NPL','KHM','LAO','LKA','TLS','HND','SLV','SEN','SLB'],
-    "Upper middle": ['CHN','BRA','MEX','COL','THA','ZAF','PER','ECU','GAB','ARG','VEN','BOL','CIV','GTM','FJI'],
-    "High": ['USA','GBR','DEU','FRA','ESP','NLD','CHE','CAN','AUS','BEL','CHL']
-}
 # 赞助商分类 Sponsor classification
 def classify_categories(sponsor_name):
     #根据赞助商名称分类为：政府、公司、非营利组织或其他
@@ -30,18 +14,11 @@ def classify_categories(sponsor_name):
         return "Unknown"
     sponsor_upper = str(sponsor_name).upper()
 
-    government_keywords = ['MINISTRY', 'GOVERNMENT', 'NATIONAL INSTITUTE', 'CDC', 'NIH', 'DEPARTMENT', 'COUNCIL']
-    industry_keywords = ['PHARMA', 'INC', 'CORP', 'LTD', 'LLC', 'DIVISION', 'LIMITED', 'KGAA']
-    nonprofit_keywords = ['UNIVERSITY', 'HOSPITAL', 'FOUNDATION', 'INTERNATIONAL', 'NGO', 'TRUST', 'WHO',
-                          'ORGANISATION',
-                          'INSTITUTE', 'INSTITUTIONAL', 'ACADEMY', 'DRUGS FOR NEGLECTED DISEASES INITIATIVE',
-                          'DRUGS FOR NEGLECTED DISEASES', 'SCHOOL', 'ACADEMIC', 'IDRI', 'PATH']
-
-    if any(k in sponsor_upper for k in government_keywords):
+    if any(k in sponsor_upper for k in SPONSOR_KEYWORDS['Government']):
         return "Government"
-    if any(k in sponsor_upper for k in industry_keywords):
+    if any(k in sponsor_upper for k in SPONSOR_KEYWORDS['Industry']):
         return "Industry"
-    if any(k in sponsor_upper for k in nonprofit_keywords):
+    if any(k in sponsor_upper for k in SPONSOR_KEYWORDS['Non-profit']):
         return "Non-profit"
     return "Other"
 
@@ -50,7 +27,7 @@ def map_income(code_str):
     if pd.isna(code_str):
         return "Unknown"
     code = re.split(r'[|,;/\s]+', str(code_str).strip().upper())[0]
-    for lvl, codes in income_map.items():
+    for lvl, codes in INCOME_MAP.items():
         if code in codes:
             return lvl
     return "Unknown"
