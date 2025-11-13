@@ -1,7 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-
+from CleanData import COUNTRY_CODE
+import geopandas as gpd
 # 创建输出文件夹 Create output folder
 os.makedirs("CleanedDataPlt", exist_ok=True)
 
@@ -79,4 +80,32 @@ ax.pie(burden_sum.values, labels=burden_sum.index, autopct='%1.1f%%',
 ax.set_title('Industry Trials by Region', fontsize=14, fontweight='bold')
 plt.savefig('CleanedDataPlt/industry_region.png', dpi=300, bbox_inches='tight')
 plt.close()
+
+#draw heatmap
+country_stats = pd.read_csv("CleanedData/country_statistics.csv", encoding="utf-8-sig")
+
+# 反转映射：国家名 -> ISO代码 Reverse mapping: country name -> ISO code
+name_to_code = {v: k for k, v in COUNTRY_CODE.items()}
+country_stats['iso_alpha'] = country_stats['country'].map(name_to_code)
+
+# 读取地理数据 Read geographic data
+world = gpd.read_file('countries.geo.json')
+
+# 合并数据 Merge data
+world = world.merge(country_stats, left_on='id', right_on='iso_alpha', how='left')
+
+# 绘制地图 Plot map
+fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+world.plot(column='count', ax=ax, legend=True, cmap='YlOrRd',
+           missing_kwds={'color': 'lightgrey', 'label': 'No data'},
+           edgecolor='black', linewidth=0.5,
+           legend_kwds={'label': 'Number of NTD Clinical Trials', 'shrink': 0.5})
+ax.set_title('World Map: Number of NTD Clinical Trials by Country',
+             fontsize=16, fontweight='bold', pad=20)
+ax.axis('off')
+
+# 保存JPG Save JPG
+plt.savefig('CleanedDataPlt/world_heatmap.jpg', dpi=300, bbox_inches='tight')
+plt.close()
+print("✓ World heatmap saved as CleanedDataPlt/world_heatmap.jpg")
 print("✓ Figure saved successfully!")
