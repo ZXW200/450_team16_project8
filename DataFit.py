@@ -75,7 +75,7 @@ for i, (title, prefix) in enumerate(groups.items()):
     group_data = group_data.sort_values('coefficient')
 
     # 绘制条形图 Draw bar chart
-    colors = ['#d62728' if x < 0 else '#2ecc71' for x in group_data['coefficient']]
+    colors = np.where(group_data['coefficient'] < 0, 'red', 'green')
     ax.barh(group_data['short_name'], group_data['coefficient'],
             color=colors, alpha=0.75, edgecolor='black', linewidth=0.5)
     ax.axvline(0, color='black', linestyle='--', linewidth=1.5)
@@ -88,8 +88,8 @@ for i, (title, prefix) in enumerate(groups.items()):
         from matplotlib.patches import Patch
 
         legend_elements = [
-            Patch(facecolor='#2ecc71', alpha=0.75, label='Positive'),
-            Patch(facecolor='#d62728', alpha=0.75, label='Negative')
+            Patch(facecolor='mediumseagreen', alpha=0.75, label='Positive'),
+            Patch(facecolor='firebrick', alpha=0.75, label='Negative')
         ]
         ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
 
