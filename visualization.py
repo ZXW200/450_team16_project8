@@ -1,8 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-from CleanData import COUNTRY_CODE
+from Maping import COUNTRY_CODE, HIGH_BURDEN_COUNTRIES
 import geopandas as gpd
+
 # 创建输出文件夹 Create output folder
 os.makedirs("CleanedDataPlt", exist_ok=True)
 
@@ -21,10 +22,10 @@ published_sponsor_counts = published_df["sponsor_category"].value_counts()
 
 # 指定类别颜色 Specify category color
 color_map = {
-    'Industry': 'blue',
-    'Non-profit': 'red',
-    'Government': 'green',
-    'Other': 'black'
+    'Industry': '#3498db',
+    'Non-profit': '#e74c3c',
+    'Government': '#2ecc71',
+    'Other': '#95a5a6'
 }
 
 # 绘制对比图 Draw a comparison chart
@@ -54,18 +55,14 @@ for data, ax, title in [(all_sponsor_counts, ax1, 'All Trials'),
 
 fig.suptitle('Sponsor Category Distribution', fontsize=14, fontweight='bold')
 plt.tight_layout()
-plt.savefig('CleanedDataPlt/sponsor_distribution.png', dpi=300, bbox_inches='tight')
+plt.savefig('CleanedDataPlt/sponsor_distribution.jpg', dpi=300, bbox_inches='tight')
 plt.close()
 
 industry_stats = pd.read_csv("CleanedData/country_Industry.csv", encoding="utf-8-sig")
 
-# 定义高负担国家列表 Define the list of high burden countries
-high_burden_countries = ['India', 'Mexico', 'Tanzania', 'Bangladesh', 'Bolivia',
-                       'Côte d\'Ivoire', 'Kenya', 'Egypt']
-
 # 添加负担分类列 Add burden classification column
 industry_stats['burden_level'] = industry_stats['country'].apply(
-    lambda x: 'High Burden' if x in high_burden_countries else 'Normal'
+    lambda x: 'High Burden' if x in HIGH_BURDEN_COUNTRIES else 'Normal'
 )
 
 # 保存更新后的文件 Save
@@ -78,10 +75,11 @@ fig, ax = plt.subplots(figsize=(10, 7))
 ax.pie(burden_sum.values, labels=burden_sum.index, autopct='%1.1f%%',
        colors=['#e74c3c', '#3498db'], startangle=90)
 ax.set_title('Industry Trials by Region', fontsize=14, fontweight='bold')
-plt.savefig('CleanedDataPlt/industry_region.png', dpi=300, bbox_inches='tight')
+plt.savefig('CleanedDataPlt/industry_region.jpg', dpi=300, bbox_inches='tight')
 plt.close()
+print("✓ Figure saved successfully!")
 
-#draw heatmap
+# 创建世界地图热力图 Create world map heatmap
 country_stats = pd.read_csv("CleanedData/country_statistics.csv", encoding="utf-8-sig")
 
 # 反转映射：国家名 -> ISO代码 Reverse mapping: country name -> ISO code
@@ -108,4 +106,5 @@ ax.axis('off')
 plt.savefig('CleanedDataPlt/world_heatmap.jpg', dpi=300, bbox_inches='tight')
 plt.close()
 print("✓ World heatmap saved as CleanedDataPlt/world_heatmap.jpg")
-print("✓ Figure saved successfully!")
+
+print("\n所有可视化完成！ All visualizations completed!")
