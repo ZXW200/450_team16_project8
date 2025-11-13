@@ -381,7 +381,7 @@ Lancaster University. Data source: WHO ICTRP (1999-2023).
 
 ## 🔄 Version History
 
-- **Version 1.13.2** (12.11.2025): Current release
+- **Version 1.13.3** (13.11.2025): Current release
   - Data cleaning with outlier detection
   - Network analysis implementation
   - Geographic visualization with world heatmap
