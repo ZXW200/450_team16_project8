@@ -20,10 +20,10 @@ published_sponsor_counts = published_df["sponsor_category"].value_counts()
 
 # 指定类别颜色 Specify category color
 color_map = {
-    'Industry': '#3498db',
-    'Non-profit': '#e74c3c',
-    'Government': '#2ecc71',
-    'Other': '#95a5a6'
+    'Industry': 'blue',
+    'Non-profit': 'red',
+    'Government': 'green',
+    'Other': 'black'
 }
 
 # 绘制对比图 Draw a comparison chart
