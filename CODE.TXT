@@ -1,0 +1,303 @@
+===============================================================================
+NTD CLINICAL TRIALS ANALYSIS - SOURCE CODE DOCUMENTATION
+===============================================================================
+
+Project: Investigating Trends in Neglected Tropical Disease (NTD) Clinical Studies
+Team: Group 16
+Data Source: WHO ICTRP (1999-2023), 315 trials
+
+===============================================================================
+EXECUTION ORDER
+===============================================================================
+
+IMPORTANT: Files must be executed in the following order:
+
+1. CleanData.py          (MUST run first - generates cleaned datasets)
+2. DataFit.py            (Requires: cleaned_ictrp.csv)
+3. ExtractDrug.py        (Requires: cleaned_ictrp.csv)
+4. Network.py            (Requires: cleaned_ictrp.csv)
+5. visualization.py      (Requires: cleaned_ictrp.csv, country_Industry.csv)
+
+===============================================================================
+FILE DESCRIPTIONS
+===============================================================================
+
+--------------------------------------------------------------------------------
+1. CleanData.py (Data Cleaning & Preprocessing)
+--------------------------------------------------------------------------------
+Purpose:
+  - Primary data cleaning and preprocessing pipeline
+  - Transforms raw ICTRP data into analysis-ready datasets
+
+Key Functions:
+  - classify_categories(): Classifies sponsors into Government/Industry/
+    Non-profit/Other based on keyword matching
+  - map_income(): Maps country codes to World Bank income levels
+    (Low/Lower-middle/Upper-middle/High)
+  - validate_age(): Validates age ranges to remove outliers
+  - clean_html_tags(): Removes HTML tags from text fields
+
+Input:
+  - ictrp_data.csv (raw data)
+
+Outputs (in CleanedData/ folder):
+  - cleaned_ictrp.csv                  : Main cleaned dataset (311 trials)
+  - country_statistics.csv             : Trial counts by country
+  - country_Industry.csv               : Industry-sponsored trials by country
+  - published_trials.csv               : Trials with published results (13 trials)
+  - published_country_statistics.csv   : Published trials by country
+  - pregnant_trials.csv                : Trials including pregnant women (12 trials)
+
+Key Data Transformations:
+  - Removed 4 outlier records (invalid sample sizes/ages)
+  - Deleted sensitive fields: contact_affiliation, secondary_sponsor,
+    web_address, results_url_link
+  - Filled missing values with "Unknown" or median
+  - Created new fields: sponsor_category, income_level, results_posted, Year
+
+Statistics Generated:
+  - Sponsor distribution: Non-profit (66.9%), Other (21.2%),
+    Industry (7.4%), Government (4.5%)
+  - Publication rate: 4.2% (13/311)
+  - Countries involved: 62
+
+Dependencies:
+  - pandas, re, os
+
+--------------------------------------------------------------------------------
+2. DataFit.py (Logistic Regression Analysis)
+--------------------------------------------------------------------------------
+Purpose:
+  - Identifies factors associated with results publication (RQ 2.2.1)
+  - Uses logistic regression to model publication likelihood
+
+Method:
+  - Features: phase, study_type, sponsor_category, income_level
+  - Target: results_posted (binary: published vs unpublished)
+  - Model: Logistic Regression with OneHotEncoder
+  - Split: 80% training, 20% test (stratified)
+
+Input:
+  - CleanedData/cleaned_ictrp.csv
+
+Outputs:
+  - CleanedData/logit_results.csv        : Feature coefficients ranked
+  - CleanedDataPlt/coefficients_plot.png : Visualization of coefficients
+
+Key Findings:
+  - Positive coefficients indicate higher publication probability
+  - Negative coefficients indicate lower publication probability
+  - Results grouped by: Phase, Study Type, Sponsor, Income Level
+
+Dependencies:
+  - pandas, numpy, sklearn, matplotlib
+
+--------------------------------------------------------------------------------
+3. ExtractDrug.py (Drug Trend Analysis)
+--------------------------------------------------------------------------------
+Purpose:
+  - Analyzes drug usage trends for Chagas disease (RQ 2.2.5)
+  - Extracts and tracks top medications over time
+
+Method:
+  - Filters trials containing "Chagas" in condition/title
+  - Extracts drugs using regex pattern: "Drug: [drug_name]"
+  - Tracks top 5 most common drugs by year
+
+Input:
+  - CleanedData/cleaned_ictrp.csv
+
+Outputs:
+  - CleanedData/chagas.csv              : All Chagas-related trials
+  - CleanedData/chagas_drugs.csv        : Drug frequency counts
+  - CleanedData/chagas_drug_trends.csv  : Top 5 drugs by year
+
+Key Processing:
+  - Extracts drug names from intervention field
+  - Removes invalid dates
+  - Groups by year and drug for trend analysis
+
+Dependencies:
+  - pandas, re
+
+--------------------------------------------------------------------------------
+4. Network.py (Country Collaboration Network)
+--------------------------------------------------------------------------------
+Purpose:
+  - Reveals international collaboration patterns (RQ 2.2.2)
+  - Identifies key hub countries in NTD research
+
+Method:
+  - Builds undirected graph with countries as nodes
+  - Multi-country trials create weighted edges (collaboration strength)
+  - Calculates network metrics: degree, weighted degree, betweenness centrality
+
+Input:
+  - CleanedData/cleaned_ictrp.csv
+  - CleanData.py (imports COUNTRY_CODE mapping)
+
+Outputs:
+  - CleanedData/network_statistics.csv  : Network metrics by country
+
+Key Metrics:
+  - Number of partners: How many countries each nation collaborates with
+  - Total partnerships: Sum of collaboration instances
+  - Mediation centrality: Countries acting as bridges in the network
+
+Network Statistics:
+  - Multi-country trials: [computed at runtime]
+  - Countries in network: [computed at runtime]
+  - Collaborative connections: [computed at runtime]
+
+Dependencies:
+  - pandas, networkx, matplotlib, os
+
+--------------------------------------------------------------------------------
+5. visualization.py (Data Visualization)
+--------------------------------------------------------------------------------
+Purpose:
+  - Generates publication-ready visualizations (RQ 2.2.3)
+  - Compares sponsor categories and regional distribution
+
+Visualizations Created:
+  1. sponsor_distribution.png
+     - Pie charts comparing all trials vs published trials
+     - Shows sponsor category proportions (Industry/Non-profit/Government/Other)
+
+  2. industry_region.png
+     - Pie chart of industry trials by disease burden
+     - Compares High Burden countries vs Normal countries
+
+Method:
+  - Defines high-burden countries: India, Mexico, Tanzania, Bangladesh,
+    Bolivia, Côte d'Ivoire, Kenya, Egypt
+  - Creates burden_level classification
+  - Uses consistent color scheme across charts
+
+Input:
+  - CleanedData/cleaned_ictrp.csv
+  - CleanedData/country_Industry.csv
+
+Outputs:
+  - CleanedDataPlt/sponsor_distribution.png
+  - CleanedDataPlt/industry_region.png
+  - CleanedData/country_Industry_HighBurden.csv
+
+Dependencies:
+  - pandas, matplotlib, os
+
+===============================================================================
+DIRECTORY STRUCTURE
+===============================================================================
+
+111/
+├── ictrp_data.csv                   [Input: Raw data]
+├── CleanData.py                     [Script 1: Data cleaning]
+├── DataFit.py                       [Script 2: Logistic regression]
+├── ExtractDrug.py                   [Script 3: Drug extraction]
+├── Network.py                       [Script 4: Network analysis]
+├── visualization.py                 [Script 5: Visualizations]
+├── CODE_DOCUMENTATION.txt           [This file]
+├── CleanedData/                     [Output: Cleaned datasets]
+│   ├── cleaned_ictrp.csv
+│   ├── country_statistics.csv
+│   ├── country_Industry.csv
+│   ├── published_trials.csv
+│   ├── published_country_statistics.csv
+│   ├── pregnant_trials.csv
+│   ├── logit_results.csv
+│   ├── chagas.csv
+│   ├── chagas_drugs.csv
+│   ├── chagas_drug_trends.csv
+│   ├── network_statistics.csv
+│   └── country_Industry_HighBurden.csv
+└── CleanedDataPlt/                  [Output: Visualizations]
+    ├── coefficients_plot.png
+    ├── sponsor_distribution.png
+    └── industry_region.png
+
+===============================================================================
+HOW TO RUN THE COMPLETE ANALYSIS
+===============================================================================
+
+Step 1: Install Dependencies
+----------------------------
+pip install pandas numpy scikit-learn matplotlib networkx
+
+Step 2: Execute Scripts in Order
+--------------------------------
+python CleanData.py
+python DataFit.py
+python ExtractDrug.py
+python Network.py
+python visualization.py
+
+Step 3: Check Outputs
+--------------------
+- Cleaned datasets: CleanedData/ folder (12 CSV files)
+- Visualizations: CleanedDataPlt/ folder (3 PNG files)
+
+===============================================================================
+RESEARCH QUESTIONS ADDRESSED
+===============================================================================
+
+RQ 2.2.1: What factors are associated with results publication?
+          → DataFit.py (Logistic Regression)
+
+RQ 2.2.2: Can network analysis reveal partnerships and hub countries?
+          → Network.py (NetworkX analysis)
+
+RQ 2.2.3: What proportion of trials are funded by pharma companies?
+          Do they align with high-burden regions?
+          → visualization.py + CleanData.py
+
+RQ 2.2.4: Are children and pregnant women included in studies?
+          → CleanData.py (pregnant_trials.csv)
+          Note: Only pregnant women analysis completed due to data limitations
+
+RQ 2.2.5: For Chagas disease, which drugs are studied and how have trends evolved?
+          → ExtractDrug.py (Drug extraction and temporal analysis)
+
+===============================================================================
+DATA QUALITY NOTES
+===============================================================================
+
+- Original records: 315
+- After cleaning: 311 (4 outliers removed)
+- Time range: 1999-2023
+- Missing data handling: Median imputation for sample_size,
+  "Unknown" for categorical variables
+- Age validation: Years (0-120), Months (0-1440)
+- Sample size validation: 0 < size ≤ 1,000,000
+
+===============================================================================
+TECHNICAL SPECIFICATIONS
+===============================================================================
+
+Programming Language: Python 3.11+
+Development Environment: VSCode
+Key Libraries:
+  - pandas 2.3.3      : Data manipulation
+  - numpy 2.3.4       : Numerical operations
+  - scikit-learn      : Machine learning (logistic regression)
+  - matplotlib        : Data visualization
+  - networkx          : Network analysis
+  - re (built-in)     : Regular expressions
+  - os (built-in)     : File system operations
+
+===============================================================================
+AUTHORS
+===============================================================================
+
+Team 16 - Lancaster University
+- Peizhe Jiang (Data Scientist)
+- Congyao Ren (Data Analyst)
+- Zixu Wang (Data Engineer)
+- Alaghwani Balsam (Data Analyst)
+
+Project Host: Infectious Diseases Data Observatory, University of Oxford
+Contact: Rhys Peploe (Statistician)
+
+===============================================================================
+END OF DOCUMENTATION
+===============================================================================
