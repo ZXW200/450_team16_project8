@@ -1,4 +1,4 @@
-#Version 1.12
+#Version 1.13.2
 #Data 12.11.2025
 import pandas as pd
 import os
