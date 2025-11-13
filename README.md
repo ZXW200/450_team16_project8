@@ -1,21 +1,53 @@
-⚠️ Important Note: Please run the CleanData script before processing the data.
+# NTD Clinical Trials Analysis - Code Submission
 
-📌 Project Overview
+**Group 16** | Lancaster University | 2025
 
-Neglected Tropical Diseases (NTDs) affect more than one billion people globally, placing a disproportionate burden on socioeconomically disadvantaged populations. Despite their significant health impact, research on NTDs remains underfunded and underrepresented compared to other global health priorities.
-This project analyses 315 clinical studies registered in the World Health Organization’s International Clinical Trials Registry Platform (ICTRP), 
-The dataset spans the period 1999–2023.
-﻿
-﻿
-﻿
+## Quick Start
 
-📊 Data Source
+### Installation
+```bash
+pip install pandas numpy scikit-learn matplotlib networkx
+```
 
- 
-The dataset originates from the World Health Organization’s (WHO) International Clinical Trials Registry Platform (ICTRP), which consolidates registrations from multiple national and international trial registries.
-Scope: All available NTD-related clinical trial records (1999–2023)
-Size: 315 studies
-Curation: Data has been curated and partially standardised by the Infectious Diseases Data Observatory (IDDO) to enhance consistency, while retaining certain raw fields where full standardisation was not feasible.
-Disease Classification: Follows the official definitions provided by the WHO.
-This comprehensive dataset provides a global perspective on NTD research activity and enables robust analysis of long-term trends.
+### Execution Order (IMPORTANT!)
+```bash
+python CleanData.py          # Step 1: Data cleaning (MUST run first)
+python DataFit.py            # Step 2: Logistic regression
+python ExtractDrug.py        # Step 3: Drug analysis
+python Network.py            # Step 4: Network analysis
+python visualization.py      # Step 5: Visualizations
+```
 
+## File Overview
+
+| File | Purpose | Research Question |
+|------|---------|-------------------|
+| `CleanData.py` | Data cleaning & preprocessing | Foundation for all RQs |
+| `DataFit.py` | Logistic regression analysis | RQ 2.2.1 (Publication factors) |
+| `ExtractDrug.py` | Chagas drug trend analysis | RQ 2.2.5 (Drug trends) |
+| `Network.py` | Country collaboration network | RQ 2.2.2 (Partnerships) |
+| `visualization.py` | Sponsor & regional charts | RQ 2.2.3 (Pharma funding) |
+
+## Outputs
+
+### Datasets (12 CSV files in `CleanedData/`)
+- `cleaned_ictrp.csv` - Main cleaned dataset (311 trials)
+- `logit_results.csv` - Regression coefficients
+- `network_statistics.csv` - Country collaboration metrics
+- `chagas_drug_trends.csv` - Top 5 drugs by year
+- *...and 8 more supporting files*
+
+### Visualizations (3 PNG files in `CleanedDataPlt/`)
+- `coefficients_plot.png` - Regression coefficients
+- `sponsor_distribution.png` - Sponsor category comparison
+- `industry_region.png` - Industry trials by burden level
+
+## Key Statistics
+
+- **Data**: 311 trials (1999-2023) across 62 countries
+- **Publication rate**: 4.2% (13/311)
+- **Sponsors**: Non-profit 66.9% | Other 21.2% | Industry 7.4% | Government 4.5%
+
+## Full Documentation
+
+See `CODE_DOCUMENTATION.txt` for detailed technical documentation.
