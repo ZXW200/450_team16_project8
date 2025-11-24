@@ -1,88 +1,120 @@
+import os
 import pandas as pd
-import re
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 
-# The print statement is for test code and can be deleted at any time.
-# print("正在读取数据...")
-df = pd.read_csv('CleanedData/cleaned_ictrp.csv')
-# print(f"总共 {len(df)} 条记录")
+os.makedirs("CleanedDataPlt", exist_ok=True)
 
-# 筛选出Chagas病相关的试验
-#Screening for Chagas disease-related trials
-chagas_df = df[
-    df['standardised_condition'].str.contains('Chagas', case=False, na=False) |
-    df['original_condition'].str.contains('Chagas', case=False, na=False) |
-    df['study_title'].str.contains('Chagas', case=False, na=False)
-].copy()
+# 读取数据 Load data
+df = pd.read_csv("CleanedData/cleaned_ictrp.csv")
 
-# print(f"\n找到 {len(chagas_df)} 条Chagas病相关试验")
+# 准备特征和目标变量 Prepare features and target
+features = ["phase", "study_type", "sponsor_category", "income_level"]
+X = df[features]
+y = df["results_posted"].astype(int)
 
-# 保存基本信息
-#Save basic information
-chagas_df.to_csv("CleanedData/chagas.csv", index=False, encoding='utf-8-sig')
-# print("已保存基本数据")
-# # ========== Extracting drug =========
-# # ========== 提取药物信息 ==========
-# print("\n开始提取药物信息...")
+# 划分训练测试集 Split train/test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
 
-# 处理日期
-# Processing date
-chagas_df['date_registration'] = pd.to_datetime(chagas_df['date_registration'], errors='coerce')
-chagas_df['year'] = chagas_df['date_registration'].dt.year
+# 构建Pipeline：添加 class_weight='balanced' 处理类别不平衡
+model = Pipeline([
+    ("encoder", ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore"), features)
+    ])),
+    ("logit", LogisticRegression(max_iter=2000, class_weight='balanced',random_state=42))
+]).fit(X_train, y_train)
 
-# 移除没有日期的记录
-# remove missingdata 
-chagas_df = chagas_df.dropna(subset=['year']).copy()
-# print(f"有有效日期的试验: {len(chagas_df)} 条")
+# 提取特征名和系数 Extract feature names and coefficients
+feature_names = model.named_steps["encoder"].get_feature_names_out()
+coefficients = model.named_steps["logit"].coef_[0]
 
-# 提取所有药物和对应的年份
-# Extract all drugs and their corresponding years.
-drug_year_list = []
+# 构建结果表 Build results dataframe
+results = pd.DataFrame({
+    "feature": feature_names,
+    "coefficient": coefficients
+}).sort_values("coefficient", ascending=False)
 
-for idx, row in chagas_df.iterrows():
-    text = row['intervention']
-    year = row['year']
+# 保存结果 Save results
+results.to_csv("CleanedData/logit_results.csv", index=False, encoding="utf-8-sig")
+
+# 绘图 Plotting
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+fig.suptitle('Logistic Regression Coefficients (Balanced Model)', 
+             fontsize=16, fontweight='bold')
+
+# 按特征类型分组 Group by feature type
+groups = {
+    'Phase': 'cat__phase_',
+    'Study Type': 'cat__study_type_',
+    'Sponsor': 'cat__sponsor_category_',
+    'Income Level': 'cat__income_level_'
+}
+
+for i, (title, prefix) in enumerate(groups.items()):
+    ax = axes.flatten()[i]
     
-    if pd.isna(text):
+    # 筛选该组特征 Filter features for this group
+    group_data = results[results['feature'].str.startswith(prefix)].copy()
+    
+    if len(group_data) == 0:
         continue
     
-    # 提取 'Drug:' 后面的内容
-    # Extract the content after 'Drug:'
-    drugs = re.findall(r'Drug:\s*([^;|\n]+)', str(text), flags=re.IGNORECASE)
+    # 去掉前缀 Remove prefix
+    group_data['short_name'] = group_data['feature'].str.replace(prefix, '', regex=False)
+    group_data = group_data.sort_values('coefficient')
     
-    for drug in drugs:
-        drug_clean = drug.strip()
-        drug_year_list.append({'drug': drug_clean, 'year': int(year)})
+    # 绘制条形图 Draw bar chart
+    colors = ['#d62728' if x < 0 else '#2ecc71' for x in group_data['coefficient']]
+    ax.barh(group_data['short_name'], group_data['coefficient'],
+            color=colors, alpha=0.75, edgecolor='black', linewidth=0.5)
+    ax.axvline(0, color='black', linestyle='--', linewidth=1.5)
+    ax.set_xlabel('Coefficient', fontsize=11)
+    ax.set_title(title, fontweight='bold', fontsize=12)
+    ax.grid(axis='x', alpha=0.3)
+    
+    # 添加图例 Add legend
+    if i == 0:
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor='#2ecc71', alpha=0.75, label='Positive'),
+            Patch(facecolor='#d62728', alpha=0.75, label='Negative')
+        ]
+        ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
 
-# 转换为DataFrame 
-# turn to DataFrame
-drug_year_df = pd.DataFrame(drug_year_list)
-# print(f"提取到 {len(drug_year_df)} 条药物记录")
-#Statistics on the most common drugs
-#统计最常见的药物
-drug_counts = drug_year_df['drug'].value_counts()
-# print("\nhead10:")
-# print(drug_counts.head(10))
+# 保存图片 Save plot
+plt.tight_layout()
+plt.savefig("CleanedDataPlt/coefficients_plot_balanced.jpg", dpi=300, bbox_inches='tight')
+plt.close()
 
-# 保存 Save
-drug_counts.to_csv("CleanedData/chagas_drugs.csv", header=['Count'], encoding='utf-8-sig')
-
-#Statistical Trends by Year 
-#按年份统计趋势
-# 选择前5种最常见的药物
-# select top 5 drug
-top_5_drugs = drug_counts.head(5).index.tolist()
-# print(f"\n分析前5种药物的趋势: {top_5_drugs}")
-
-# 筛选这5种药物的数据
-# Data from screening these 5 drugs
-drug_year_top5 = drug_year_df[drug_year_df['drug'].isin(top_5_drugs)]
-
-# 按年份和药物分组统计
-# Statistics by year and drug grouping
-trend_data = drug_year_top5.groupby(['year', 'drug']).size().reset_index(name='count')
-
-# 保存趋势数据
-trend_data.to_csv("CleanedData/chagas_drug_trends.csv", index=False, encoding='utf-8-sig')
-print("saved")
+# ========== 模型评估 ==========
+y_pred = model.predict(X_test)
+y_pred_proba = model.predict_proba(X_test)[:, 1]
 
 
+print(" Model Evaluation (Balanced)")
+
+
+print(f"\nTrain Accuracy: {model.score(X_train, y_train):.4f}")
+print(f" Test Accuracy: {model.score(X_test, y_test):.4f}")
+print(f"AUC Score: {roc_auc_score(y_test, y_pred_proba):.4f}")
+
+print("\n Class Distribution:")
+print(f"train: {y_train.value_counts().to_dict()}")
+print(f"test: {y_test.value_counts().to_dict()}")
+
+print("\n Confusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+print(f"  → predit 0 (No Results): {cm[:, 0].sum()}")
+print(f"  → predit 1 (Results Posted): {cm[:, 1].sum()}")
+
+print("\n Classification Report:")
+print(classification_report(y_test, y_pred, target_names=['No Results (0)', 'Results Posted (1)'],zero_division=0))
