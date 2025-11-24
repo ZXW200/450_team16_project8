@@ -1,120 +1,197 @@
-import os
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+import re
+import os
 
+# Create output directories
+# 创建输出文件夹
+os.makedirs("CleanedData", exist_ok=True)
 os.makedirs("CleanedDataPlt", exist_ok=True)
 
-# 读取数据 Load data
-df = pd.read_csv("CleanedData/cleaned_ictrp.csv")
+# ========== 读取数据 Load Data ==========
+# Read the cleaned clinical trial data
+# 读取清洗后的临床试验数据
+df = pd.read_csv('CleanedData/cleaned_ictrp.csv')
 
-# 准备特征和目标变量 Prepare features and target
-features = ["phase", "study_type", "sponsor_category", "income_level"]
-X = df[features]
-y = df["results_posted"].astype(int)
+# ========== 筛选Chagas病相关试验 Screen for Chagas Disease Trials ==========
+# Filter trials related to Chagas disease by searching in three fields:
+# 通过搜索三个字段来筛选与Chagas病相关的试验：
+# 1. standardised_condition - Standardized disease name / 标准化疾病名称
+# 2. original_condition - Original disease name / 原始疾病名称  
+# 3. study_title - Study title / 研究标题
+chagas_df = df[
+    df['standardised_condition'].str.contains('Chagas', case=False, na=False) |
+    df['original_condition'].str.contains('Chagas', case=False, na=False) |
+    df['study_title'].str.contains('Chagas', case=False, na=False)
+].copy()
 
-# 划分训练测试集 Split train/test sets
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
+print(f"Found {len(chagas_df)} Chagas disease-related trials")
 
-# 构建Pipeline：添加 class_weight='balanced' 处理类别不平衡
-model = Pipeline([
-    ("encoder", ColumnTransformer([
-        ("cat", OneHotEncoder(handle_unknown="ignore"), features)
-    ])),
-    ("logit", LogisticRegression(max_iter=2000, class_weight='balanced',random_state=42))
-]).fit(X_train, y_train)
+# ========== 保存基本信息 Save Basic Information ==========
+# Save the filtered Chagas trial data to CSV
+# 将筛选后的Chagas试验数据保存为CSV
+chagas_df.to_csv("CleanedData/chagas.csv", index=False, encoding='utf-8-sig')
+print("Basic data saved successfully")
 
-# 提取特征名和系数 Extract feature names and coefficients
-feature_names = model.named_steps["encoder"].get_feature_names_out()
-coefficients = model.named_steps["logit"].coef_[0]
+# ========== 处理日期 Process Date ==========
+# Convert registration date to datetime format and extract year
+# 将注册日期转换为日期时间格式并提取年份
+chagas_df['date_registration'] = pd.to_datetime(chagas_df['date_registration'], errors='coerce')
+chagas_df['year'] = chagas_df['date_registration'].dt.year
 
-# 构建结果表 Build results dataframe
-results = pd.DataFrame({
-    "feature": feature_names,
-    "coefficient": coefficients
-}).sort_values("coefficient", ascending=False)
+# Remove records without valid dates
+# 移除没有有效日期的记录
+chagas_df = chagas_df.dropna(subset=['year']).copy()
+print(f"Trials with valid dates: {len(chagas_df)}")
 
-# 保存结果 Save results
-results.to_csv("CleanedData/logit_results.csv", index=False, encoding="utf-8-sig")
+# ========== 提取药物信息 Extract Drug Information ==========
+# Extract all drugs and their corresponding years from intervention field
+# 从干预字段中提取所有药物及其对应的年份
+drug_year_list = []
 
-# 绘图 Plotting
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-fig.suptitle('Logistic Regression Coefficients (Balanced Model)', 
-             fontsize=16, fontweight='bold')
-
-# 按特征类型分组 Group by feature type
-groups = {
-    'Phase': 'cat__phase_',
-    'Study Type': 'cat__study_type_',
-    'Sponsor': 'cat__sponsor_category_',
-    'Income Level': 'cat__income_level_'
-}
-
-for i, (title, prefix) in enumerate(groups.items()):
-    ax = axes.flatten()[i]
+# Iterate through each trial record
+# 遍历每条试验记录
+for idx, row in chagas_df.iterrows():
+    text = row['intervention']  # Get intervention text / 获取干预文本
+    year = row['year']  # Get registration year / 获取注册年份
     
-    # 筛选该组特征 Filter features for this group
-    group_data = results[results['feature'].str.startswith(prefix)].copy()
-    
-    if len(group_data) == 0:
+    # Skip if intervention field is empty
+    # 如果干预字段为空则跳过
+    if pd.isna(text):
         continue
     
-    # 去掉前缀 Remove prefix
-    group_data['short_name'] = group_data['feature'].str.replace(prefix, '', regex=False)
-    group_data = group_data.sort_values('coefficient')
+    # Extract drug names using regex pattern 'Drug: [drug_name]'
+    # 使用正则表达式模式'Drug: [药物名称]'提取药物名称
+    # Pattern explanation: matches "Drug:" followed by text until ';' or newline
+    # 模式说明：匹配"Drug:"后跟文本，直到遇到';'或换行符
+    drugs = re.findall(r'Drug:\s*([^;|\n]+)', str(text), flags=re.IGNORECASE)
     
-    # 绘制条形图 Draw bar chart
-    colors = ['#d62728' if x < 0 else '#2ecc71' for x in group_data['coefficient']]
-    ax.barh(group_data['short_name'], group_data['coefficient'],
-            color=colors, alpha=0.75, edgecolor='black', linewidth=0.5)
-    ax.axvline(0, color='black', linestyle='--', linewidth=1.5)
-    ax.set_xlabel('Coefficient', fontsize=11)
-    ax.set_title(title, fontweight='bold', fontsize=12)
-    ax.grid(axis='x', alpha=0.3)
-    
-    # 添加图例 Add legend
-    if i == 0:
-        from matplotlib.patches import Patch
-        legend_elements = [
-            Patch(facecolor='#2ecc71', alpha=0.75, label='Positive'),
-            Patch(facecolor='#d62728', alpha=0.75, label='Negative')
-        ]
-        ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
+    # Add each drug with its year to the list
+    # 将每个药物及其年份添加到列表中
+    for drug in drugs:
+        drug_clean = drug.strip()  # Remove leading/trailing whitespace / 移除首尾空格
+        drug_year_list.append({'drug': drug_clean, 'year': int(year)})
 
-# 保存图片 Save plot
+# Convert list to DataFrame
+# 将列表转换为DataFrame
+drug_year_df = pd.DataFrame(drug_year_list)
+print(f"Extracted {len(drug_year_df)} drug records")
+
+# ========== 统计最常见的药物 Count Most Common Drugs ==========
+# Count the frequency of each drug
+# 统计每种药物的出现频率
+drug_counts = drug_year_df['drug'].value_counts()
+
+# Display top 10 drugs
+# 显示前10种药物
+print("\nTop 10 most common drugs:")
+print(drug_counts.head(10))
+
+# Save drug frequency data to CSV
+# 将药物频率数据保存为CSV
+drug_counts.to_csv("CleanedData/chagas_drugs.csv", header=['Count'], encoding='utf-8-sig')
+print("Drug frequency data saved")
+
+# ========== 按年份统计趋势 Analyze Trends by Year ==========
+# Select top 5 most common drugs for trend analysis
+# 选择前5种最常见的药物进行趋势分析
+top_5_drugs = drug_counts.head(5).index.tolist()
+print(f"\nAnalyzing trends for top 5 drugs: {top_5_drugs}")
+
+# Filter data for these 5 drugs
+# 筛选这5种药物的数据
+drug_year_top5 = drug_year_df[drug_year_df['drug'].isin(top_5_drugs)]
+
+# Group by year and drug, then count occurrences
+# 按年份和药物分组，然后计数
+trend_data = drug_year_top5.groupby(['year', 'drug']).size().reset_index(name='count')
+
+# Save trend data to CSV
+# 将趋势数据保存为CSV
+trend_data.to_csv("CleanedData/chagas_drug_trends.csv", index=False, encoding='utf-8-sig')
+print("Drug trend data saved successfully")
+
+# ========== 可视化 Visualization ==========
+print("\nGenerating visualization...")
+
+# Set plotting style
+# 设置绘图样式
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+# ========== 创建组合图 Create Combined Figure ==========
+# Create figure with 1 row and 2 columns: left for trends, right for pie chart
+# 创建1行2列的图形：左边是趋势图，右边是饼图
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+
+# ========== 左图：时间趋势 Left: Temporal Trends ==========
+# Define colors and markers for each drug
+# 为每种药物定义颜色和标记
+colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6']
+markers = ['o', 's', '^', 'D', 'v']
+
+# Plot trend line for each drug
+# 为每种药物绘制趋势线
+for i, drug in enumerate(top_5_drugs):
+    drug_data = trend_data[trend_data['drug'] == drug]
+    ax1.plot(drug_data['year'], drug_data['count'], 
+            marker=markers[i], color=colors[i], linewidth=3, 
+            markersize=10, label=drug, alpha=0.85)
+
+# Configure left plot
+# 配置左图
+ax1.set_xlabel('Year', fontsize=14, fontweight='bold')
+ax1.set_ylabel('Number of Trials', fontsize=14, fontweight='bold')
+ax1.set_title('Temporal Trends of Top 5 Drugs', 
+             fontsize=16, fontweight='bold', pad=15)
+ax1.legend(loc='best', fontsize=11, framealpha=0.95, edgecolor='black')
+ax1.grid(alpha=0.3, linestyle='--')
+ax1.tick_params(labelsize=11)
+
+# ========== 右图：饼图 Right: Pie Chart ==========
+# Get top 5 drug counts 
+# 获取前5种药物的计数
+top_5 = drug_counts.head(5)
+colors_pie = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6']
+
+# Extract values and labels from Series
+# 从Series中提取值和标签
+values = top_5.values  # Get the count values / 获取计数值
+labels = top_5.index.tolist()  # Get the drug names / 获取药物名称
+
+# Create pie chart (without shadow effect)
+# 创建饼图（无阴影效果）
+wedges, texts, autotexts = ax2.pie(
+    values, 
+    labels=labels,
+    autopct='%1.1f%%',  # Show percentage / 显示百分比
+    colors=colors_pie,
+    startangle=90,  # Start angle / 起始角度
+    textprops={'fontsize': 13, 'weight': 'bold'},
+    explode=[0.05]*5  # Separate slices slightly / 稍微分离切片
+)
+
+# Style percentage text
+# 设置百分比文本样式
+for autotext in autotexts:
+    autotext.set_color('white')
+    autotext.set_fontsize(14)
+    autotext.set_weight('bold')
+
+# Configure right plot
+# 配置右图
+ax2.set_title('Distribution of Top 5 Drugs', 
+             fontsize=16, fontweight='bold', pad=15)
+
+# ========== 添加总标题 Add Overall Title ==========
+fig.suptitle('Chagas Disease Drug Analysis: Trends and Distribution', 
+             fontsize=18, fontweight='bold', y=0.98)
+
+# ========== 保存图表 Save Figure ==========
 plt.tight_layout()
-plt.savefig("CleanedDataPlt/coefficients_plot_balanced.jpg", dpi=300, bbox_inches='tight')
+plt.savefig("CleanedDataPlt/drug_trends_and_pie.jpg", dpi=300, bbox_inches='tight')
 plt.close()
 
-# ========== 模型评估 ==========
-y_pred = model.predict(X_test)
-y_pred_proba = model.predict_proba(X_test)[:, 1]
-
-
-print(" Model Evaluation (Balanced)")
-
-
-print(f"\nTrain Accuracy: {model.score(X_train, y_train):.4f}")
-print(f" Test Accuracy: {model.score(X_test, y_test):.4f}")
-print(f"AUC Score: {roc_auc_score(y_test, y_pred_proba):.4f}")
-
-print("\n Class Distribution:")
-print(f"train: {y_train.value_counts().to_dict()}")
-print(f"test: {y_test.value_counts().to_dict()}")
-
-print("\n Confusion Matrix:")
-cm = confusion_matrix(y_test, y_pred)
-print(cm)
-print(f"  → predit 0 (No Results): {cm[:, 0].sum()}")
-print(f"  → predit 1 (Results Posted): {cm[:, 1].sum()}")
-
-print("\n Classification Report:")
-print(classification_report(y_test, y_pred, target_names=['No Results (0)', 'Results Posted (1)'],zero_division=0))
+print("\nVisualization completed successfully!")
+print("Output file: CleanedDataPlt/drug_trends_and_pie.jpg")
+print("\n=== All tasks completed ===")
