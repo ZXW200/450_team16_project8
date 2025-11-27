@@ -209,13 +209,13 @@ published_df.to_csv("CleanedData/published_trials.csv", index=False, encoding="u
 
 # 根据 pregnant_participants 字段筛选孕妇相关试验
 #Screening pregnant women related trials based on the pregnant_participants field
-if 'pregnant_participants' in df.columns:
-    pregnant_trials = df[df['pregnant_participants'].str.upper().str.strip() == 'INCLUDED'].copy()
-    pregnant_trials.to_csv("CleanedData/pregnant_trials.csv", index=False, encoding="utf-8-sig")
-    print(f"Pregnant Trials: {len(pregnant_trials)}")
-else:
-    print("Warning: 'pregnant_participants' column not found in data")
-    pregnant_trials = pd.DataFrame()
+# if 'pregnant_participants' in df.columns:
+#     pregnant_trials = df[df['pregnant_participants'].str.upper().str.strip() == 'INCLUDED'].copy()
+#     pregnant_trials.to_csv("CleanedData/pregnant_trials.csv", index=False, encoding="utf-8-sig")
+#     print(f"Pregnant Trials: {len(pregnant_trials)}")
+# else:
+#     print("Warning: 'pregnant_participants' column not found in data")
+#     pregnant_trials = pd.DataFrame()
 
 print("\nData Cleaning Completed!")
 print(f"Time Range: {int(df['Year'].min())} - {int(df['Year'].max())}")
