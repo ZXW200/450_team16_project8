@@ -128,14 +128,14 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
 # Define colors and markers for each drug
 # 为每种药物定义颜色和标记
 colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6']
-markers = ['o', 's', '^', 'D', 'v']
+
 
 # Plot trend line for each drug
 # 为每种药物绘制趋势线
 for i, drug in enumerate(top_5_drugs):
     drug_data = trend_data[trend_data['drug'] == drug]
     ax1.plot(drug_data['year'], drug_data['count'], 
-            marker=markers[i], color=colors[i], linewidth=3, 
+            color=colors[i], linewidth=3, 
             markersize=10, label=drug, alpha=0.85)
 
 # Configure left plot
