@@ -1,166 +1,135 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 
-plt.style.use('default')
-sns.set_palette('husl')
+#数据文件读取
+df = pd.read_csv('CleanedData/cleaned_ictrp.csv')
 
-Input = 'CleanedData/cleaned_ictrp.csv'
-Output = 'CleanedData/wofageinidenage.csv'
-
-print("Loading data...")
-df = pd.read_csv(Input)
-print("Data loaded. Shape:", df.shape)
-
-def Inclusion(row):
-    """
-    排除EXCLUDED_出现exclude/no pregnant/not allowed等关键字
-    包含INCLUDED_出现allow/include/eligible/pregnant等关键字
-    提及无法明确MENTIONED_UNCLEAR
-    没提到pregnant标注为UNKNOWN
-    """
-
-    # 合并相关字段文本
-    txt = ' '.join([
-        str(row.get('inclusion_criteria', '')),
-        str(row.get('exclusion_criteria', '')),
-        str(row.get('pregnant_participants', ''))
-    ]).lower()
-
-    # 未提及怀孕相关关键词
-    if not any(x in txt for x in ['pregnan', 'pregnancy', 'pregnant']):
-        return 'UNKNOWN'
-
-    #排除标志
-    exclude_patterns = [
-        r'no pregnant', r'no pregnancy', r'exclud', r'not allow', r'prohibit'
-    ]
-    if any(re.search(p, txt) for p in exclude_patterns):
-        return 'EXCLUDED'
-
-    #纳入标志
-    include_patterns = [
-        r'allow', r'include', r'eligible', r'permit', r'accept'
-    ]
-    if any(re.search(p, txt) for p in include_patterns):
+#判断孕妇是否被纳入研究
+#三个地方判别：专门标记、纳入、排除
+def check(row):
+    # 先看专门标记
+    preg_mark = str(row.get('pregnant_participants', '')).strip().upper()
+    # 有明确标记直接使用
+    if preg_mark == 'INCLUDED':
         return 'INCLUDED'
-
-    #提到但是不清楚
+    if preg_mark == 'EXCLUDED':
+        return 'EXCLUDED'
+    
+    #没明确标记就查文本
+    inc = str(row.get('inclusion_criteria', ''))
+    exc = str(row.get('exclusion_criteria', ''))
+    all_text = (inc + ' ' + exc).lower()
+    
+    #检查是否提到孕妇相关词汇
+    preg_words = ['pregnant', 'pregnancy', 'gestation', 
+                 'lactating', 'breastfeeding', 'childbearing']
+    
+    #没提到则返回未知
+    has_preg = any(word in all_text for word in preg_words)
+    if not has_preg:
+        return 'UNKNOWN'
+    
+    #检查排除的情况
+    exclude_patterns = ['exclud.*pregnant', 'no pregnant', 'not pregnant',
+                       'non.pregnant', 'contraindicated.*pregnant']
+    
+    for pat in exclude_patterns:
+        if re.search(pat, all_text):
+            return 'EXCLUDED'
+    
+    #检查纳入的情况
+    include_patterns = ['include.*pregnant', 'pregnant.*include', 
+                       'pregnant.*allow', 'pregnant.*eligible']
+    
+    for pat in include_patterns:
+        if re.search(pat, all_text):
+            return 'INCLUDED'
+    
+    #提到了但不明确
     return 'MENTIONED_UNCLEAR'
 
+#应用判断函数
+df['preg_status'] = df.apply(check, axis=1)
 
-print("\nRunning improved pregnancy detection...")
-df['pregnant_included'] = df.apply(Inclusion, axis=1)
-print(df['pregnant_included'].value_counts())
+#分析明确标记了包含或排除的研究
+df_clear = df[df['preg_status'].isin(['INCLUDED', 'EXCLUDED'])]
 
+#观测不同疾病类型的情况，选研究数量最多的前15种疾病分析
+disease_counts = df_clear['standardised_condition'].value_counts()
+top_diseases = disease_counts.head(15).index
 
-def clean_phase(p):
-    if pd.isna(p): 
-        return 'Unknown'
-    s = str(p).lower()
+df_top = df_clear[df_clear['standardised_condition'].isin(top_diseases)]
 
-    mapping = {
-        'phase iv': 'Phase IV',
-        'phase 4': 'Phase IV',
-        'phase iii': 'Phase III',
-        'phase 3': 'Phase III',
-        'phase ii': 'Phase II',
-        'phase 2': 'Phase II',
-        'phase i': 'Phase I',
-        'phase 1': 'Phase I'
-    }
+#计算每种疾病的孕妇纳入比例
+def calc_incl_rate(group):
+    #group是某个疾病的所有研究
+    included = (group == 'INCLUDED').sum()
+    total = len(group)
+    return (included / total) * 100
 
-    for i, val in mapping.items():
-        if i in s:
-            return val
+#按疾病分组计算
+incl_rates = df_top.groupby('standardised_condition')['preg_status'].apply(calc_incl_rate)
+incl_rates = incl_rates.sort_values(ascending=False)
 
-    if 'not applicable' in s:
-        return 'Not Applicable'
-
-    return 'Unknown'
-
-
-df['phase_category'] = df['phase'].apply(clean_phase) if 'phase' in df.columns else 'Unknown'
-
-
-def Disease(cond):
-    if pd.isna(cond):
-        return 'Unknown'
-
-    s = cond.lower()
-
-    rules = [
-        (['malaria'], 'Malaria'),
-        (['schisto', 'helminth', 'worm', 'parasite'], 'Parasitic Diseases'),
-        (['hiv', 'virus', 'covid', 'ebola'], 'Viral Diseases'),
-        (['tb', 'tuberculosis'], 'Bacterial Diseases'),
-        (['diabetes'], 'Metabolic Disorders'),
-        (['cancer', 'tumor'], 'Oncology'),
-        (['maternal', 'pregnan'], 'Maternal/Reproductive'),
-    ]
-
-    for j, label in rules:
-        if any(k in s for k in j):
-            return label
-
-    return 'Other'
-
-
-df['disease_category'] = df['standardised_condition'].apply(Disease)
-
-
-#计算统计数据
-print("\nComputing statistics:")
-
-# 过滤掉不明确的UNKNOWN与MENTIONED_UNCLEAR
-valid_df = df[df['pregnant_included'].isin(['INCLUDED', 'EXCLUDED'])]
-
-# Inclusion rate by phase
-Stats = (
-    valid_df.groupby('phase_category')['pregnant_included']
-    .apply(lambda x: (x == 'INCLUDED').mean() * 100)
-    .sort_values(ascending=False)
-)
-
-#热图数据
-heatmap_data = (
-    valid_df.groupby(['disease_category', 'phase_category'])['pregnant_included']
-    .apply(lambda x: (x == 'INCLUDED').mean() * 100)
-    .unstack()
-)
+#交叉表反映具体数量
+cross_table = pd.crosstab(df_top['standardised_condition'], df_top['preg_status'])
 
 
 
-#绘图
-plt.figure(figsize=(14, 5))
-plt.subplot(1, 2, 1)
-df['pregnant_included'].value_counts().plot(
-    kind='pie',
-    autopct='%1.1f%%',
-    colors=['#66b3ff', '#ff9999', '#ffcc99', '#cccccc']
-)
-plt.title('Pregnancy Inclusion Status Distribution')
-plt.ylabel('')
-plt.subplot(1, 2, 2)
-Stats.plot(kind='bar', color='skyblue', edgecolor='black')
-plt.ylabel('Inclusion Rate(%)')
-plt.title('Inclusion Rate by Study Phase')
+#总体情况饼图
+fig1, ax1 = plt.subplots(figsize=(6, 6))
+
+#计算各状态的数量
+status_counts = df['preg_status'].value_counts()
+
+#饼图设置
+colors = ['#66b3ff', '#ff9999', '#ffcc99', '#99ff99']
+
+ax1.pie(status_counts.values, 
+        labels=status_counts.index, 
+        autopct='%1.1f%%', 
+        colors=colors)
+
+ax1.set_title('All Studies Pregnancy Participation')
 plt.tight_layout()
 plt.show()
 
+#按疾病分析的情况
+fig2, axes = plt.subplots(1, 2, figsize=(17, 6))
 
-#热力图
-plt.figure(figsize=(12, 6))
-sns.heatmap(heatmap_data, annot=True, cmap='YlOrRd', fmt='.1f')
-plt.title('Pregnancy Inclusion Across Disease Categories and Phases')
-plt.xlabel('Study Phase')
-plt.ylabel('Disease Category')
+#纳入率条形图
+bars = axes[0].bar(incl_rates.index, incl_rates.values, color='salmon', alpha=0.75)
+
+#在柱子上标出百分比
+for bar in bars:
+    height = bar.get_height()
+    axes[0].text(bar.get_x() + bar.get_width() / 2, 
+                height + 0.5, 
+                f'{height:.1f}%', 
+                ha='center', 
+                va='bottom',
+                fontsize=9)
+
+axes[0].set_title('Pregnancy Inclusion Rate by Disease Type (Top 15)')
+axes[0].set_ylabel('Inclusion Rate (%)')
+axes[0].tick_params(axis='x', rotation=45)
+
+#纳入vs排除数量对比
+cross_table.plot(kind='bar', ax=axes[1], color=['lightcoral', 'lightgreen'])
+axes[1].set_title('Pregnancy Inclusion vs Exclusion by Disease Type')
+axes[1].set_ylabel('Number of Studies')
+axes[1].legend(['Excluded', 'Included'])
+axes[1].tick_params(axis='x', rotation=45)
+
 plt.tight_layout()
 plt.show()
 
-#保存处理后的数据
-df.to_csv(Output, index=False)
-print(f"\nProcessed dataset saved to {Output}")
-print("\nAnalysis completed.")
+#打印关键统计数据
+print(f"Total studies: {len(df)}")
+print(f"Studies with clear pregnancy status: {len(df_clear)}")
+print("\nPregnancy status distribution:")
+print(df['preg_status'].value_counts())
+print("\nTop 5 diseases by inclusion rate:")
+print(incl_rates.head())
