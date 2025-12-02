@@ -36,7 +36,7 @@ def map_income(code_str):
 # 读取原始数据 Read raw data
 file_path = "ictrp_data.csv"
 df = pd.read_csv(file_path, on_bad_lines="skip", encoding="utf-8")
-print(f"raw data: {len(df)} 条")
+print(f"raw data: {len(df)} ")
 
 # 处理日期字段 Process date fields
 date_fields = ['date_registration', 'date_enrollment']
