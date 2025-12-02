@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-from Maping import COUNTRY_CODE, HIGH_BURDEN_COUNTRIES
+from Mapping import COUNTRY_CODE, HIGH_BURDEN_COUNTRIES
 import geopandas as gpd
 
 # 创建输出文件夹 Create output folder
