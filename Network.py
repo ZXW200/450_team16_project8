@@ -1,4 +1,4 @@
-from Maping import COUNTRY_CODE
+from Mapping import COUNTRY_CODE
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
