@@ -11,12 +11,12 @@ import os
 os.makedirs("CleanedData", exist_ok=True)
 os.makedirs("CleanedDataPlt", exist_ok=True)
 
-# ========== 读取数据 Load Data ==========
+#读取数据 Load Data
 # Read the cleaned clinical trial data
 # 读取清洗后的临床试验数据
 df = pd.read_csv("CleanedData/cleaned_ictrp.csv", encoding="utf-8")
 
-# ========== 构建网络图 Build Network Graph ==========
+# 构建网络图 Build Network Graph
 # Initialize an empty undirected graph
 # 初始化一个空的无向图
 G = nx.Graph()
@@ -70,7 +70,7 @@ print(f"Total multi-country trials: {multi_country_trials}")
 print(f"Total countries in network: {G.number_of_nodes()}")
 print(f"Total collaborative connections: {G.number_of_edges()}")
 
-# ========== 计算网络指标 Calculate Network Metrics ==========
+# 计算网络指标 Calculate Network Metrics
 # Calculate degree (number of partners) for each country
 # 计算每个国家的度（合作伙伴数量）
 degree_dict = dict(G.degree())
@@ -109,7 +109,7 @@ if len(G.nodes()) > 0:
     network_stats.to_csv("CleanedData/network_statistics.csv", index=False, encoding="utf-8-sig")
     print("Network statistics saved successfully")
 
-# ========== 可视化网络图 Visualize Network ==========
+# 可视化网络图 Visualize Network 
 print("\nGenerating network visualization...")
 
 # Set plotting style
