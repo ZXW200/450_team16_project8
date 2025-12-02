@@ -94,7 +94,7 @@ plt.tight_layout()
 plt.savefig("CleanedDataPlt/coefficients_plot_balanced.jpg", dpi=300, bbox_inches='tight')
 plt.close()
 
-# ========== 模型评估 ==========
+# 模型评估
 y_pred = model.predict(X_test)
 y_pred_proba = model.predict_proba(X_test)[:, 1]
 
