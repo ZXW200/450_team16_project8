@@ -148,7 +148,7 @@ else:
 
 # Use colormap: blue (low collaboration) to red (high collaboration)
 # 使用颜色映射：蓝色（低合作）到红色（高合作）
-cmap = cm.get_cmap('coolwarm')  # Blue to Red colormap / 蓝到红的颜色映射
+cmap =plt.get_cmap('coolwarm')  # Blue to Red colormap / 蓝到红的颜色映射
 node_colors = [cmap(val) for val in normalized_collabs]
 
 # Calculate edge widths based on collaboration weight
