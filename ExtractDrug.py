@@ -187,4 +187,4 @@ plt.close()
 
 print("\nVisualization completed successfully!")
 print("Output file: CleanedDataPlt/drug_trends_and_pie.jpg")
-print("\n=== All tasks completed ===")
+print("\n All ExtractDrug completed ")
