@@ -105,6 +105,6 @@ ax.axis('off')
 # 保存JPG Save JPG
 plt.savefig('CleanedDataPlt/world_heatmap.jpg', dpi=300, bbox_inches='tight')
 plt.close()
-print("✓ World heatmap saved as CleanedDataPlt/world_heatmap.jpg")
+print("World heatmap saved as CleanedDataPlt/world_heatmap.jpg")
 
-print("\n所有可视化完成！ All visualizations completed!")
+print("\n All visualizations completed!")
