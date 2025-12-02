@@ -107,4 +107,4 @@ plt.savefig('CleanedDataPlt/world_heatmap.jpg', dpi=300, bbox_inches='tight')
 plt.close()
 print("World heatmap saved as CleanedDataPlt/world_heatmap.jpg")
 
-print("\n All visualizations completed!")
+print("\n All visualizations completed ")
