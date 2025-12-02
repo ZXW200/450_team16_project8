@@ -220,3 +220,4 @@ published_df.to_csv("CleanedData/published_trials.csv", index=False, encoding="u
 print("\nData Cleaning Completed!")
 print(f"Time Range: {int(df['Year'].min())} - {int(df['Year'].max())}")
 print(f"Total Trials: {len(df)}")
+print("\n All CleanData completed ")
