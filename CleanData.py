@@ -1,5 +1,5 @@
-#Version 1.13.5
-#Data 13.11.2025
+#Version 1.14.2
+#Data 02.12.2025
 import pandas as pd
 import os
 import re
