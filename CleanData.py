@@ -3,7 +3,7 @@
 import pandas as pd
 import os
 import re
-from Maping import COUNTRY_CODE, INCOME_MAP, SPONSOR_KEYWORDS
+from Mapping import COUNTRY_CODE, INCOME_MAP, SPONSOR_KEYWORDS
 
 os.makedirs("CleanedData", exist_ok=True)
 # 赞助商分类 Sponsor classification
