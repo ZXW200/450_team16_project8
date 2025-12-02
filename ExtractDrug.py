@@ -8,17 +8,14 @@ import os
 os.makedirs("CleanedData", exist_ok=True)
 os.makedirs("CleanedDataPlt", exist_ok=True)
 
-# ========== 读取数据 Load Data ==========
+# 读取数据 Load Data 
 # Read the cleaned clinical trial data
 # 读取清洗后的临床试验数据
 df = pd.read_csv('CleanedData/cleaned_ictrp.csv')
 
-# ========== 筛选Chagas病相关试验 Screen for Chagas Disease Trials ==========
-# Filter trials related to Chagas disease by searching in three fields:
-# 通过搜索三个字段来筛选与Chagas病相关的试验：
-# 1. standardised_condition - Standardized disease name / 标准化疾病名称
-# 2. original_condition - Original disease name / 原始疾病名称  
-# 3. study_title - Study title / 研究标题
+# 筛选Chagas病相关试验 Screen for Chagas Disease Trials 
+# Filter Chagas disease 
+# 筛选与Chagas病相关的试验：
 chagas_df = df[
     df['standardised_condition'].str.contains('Chagas', case=False, na=False) |
     df['original_condition'].str.contains('Chagas', case=False, na=False) |
@@ -27,13 +24,13 @@ chagas_df = df[
 
 print(f"Found {len(chagas_df)} Chagas disease-related trials")
 
-# ========== 保存基本信息 Save Basic Information ==========
+# 保存基本信息 Save Basic Information 
 # Save the filtered Chagas trial data to CSV
 # 将筛选后的Chagas试验数据保存为CSV
 chagas_df.to_csv("CleanedData/chagas.csv", index=False, encoding='utf-8-sig')
 print("Basic data saved successfully")
 
-# ========== 处理日期 Process Date ==========
+# 处理日期 Process Date 
 # Convert registration date to datetime format and extract year
 # 将注册日期转换为日期时间格式并提取年份
 chagas_df['date_registration'] = pd.to_datetime(chagas_df['date_registration'], errors='coerce')
@@ -44,9 +41,7 @@ chagas_df['year'] = chagas_df['date_registration'].dt.year
 chagas_df = chagas_df.dropna(subset=['year']).copy()
 print(f"Trials with valid dates: {len(chagas_df)}")
 
-# ========== 提取药物信息 Extract Drug Information ==========
-# Extract all drugs and their corresponding years from intervention field
-# 从干预字段中提取所有药物及其对应的年份
+# 提取药物信息 Extract Drug Information 
 drug_year_list = []
 
 # Iterate through each trial record
@@ -62,8 +57,6 @@ for idx, row in chagas_df.iterrows():
     
     # Extract drug names using regex pattern 'Drug: [drug_name]'
     # 使用正则表达式模式'Drug: [药物名称]'提取药物名称
-    # Pattern explanation: matches "Drug:" followed by text until ';' or newline
-    # 模式说明：匹配"Drug:"后跟文本，直到遇到';'或换行符
     drugs = re.findall(r'Drug:\s*([^;|\n]+)', str(text), flags=re.IGNORECASE)
     
     # Add each drug with its year to the list
@@ -77,7 +70,7 @@ for idx, row in chagas_df.iterrows():
 drug_year_df = pd.DataFrame(drug_year_list)
 print(f"Extracted {len(drug_year_df)} drug records")
 
-# ========== 统计最常见的药物 Count Most Common Drugs ==========
+# 统计最常见的药物 Count Most Common Drugs 
 # Count the frequency of each drug
 # 统计每种药物的出现频率
 drug_counts = drug_year_df['drug'].value_counts()
@@ -92,7 +85,7 @@ print(drug_counts.head(10))
 drug_counts.to_csv("CleanedData/chagas_drugs.csv", header=['Count'], encoding='utf-8-sig')
 print("Drug frequency data saved")
 
-# ========== 按年份统计趋势 Analyze Trends by Year ==========
+# 按年份统计趋势 Analyze Trends by Year
 # Select top 5 most common drugs for trend analysis
 # 选择前5种最常见的药物进行趋势分析
 top_5_drugs = drug_counts.head(5).index.tolist()
@@ -111,7 +104,7 @@ trend_data = drug_year_top5.groupby(['year', 'drug']).size().reset_index(name='c
 trend_data.to_csv("CleanedData/chagas_drug_trends.csv", index=False, encoding='utf-8-sig')
 print("Drug trend data saved successfully")
 
-# ========== 可视化 Visualization ==========
+# 可视化 Visualization
 print("\nGenerating visualization...")
 
 # Set plotting style
@@ -119,12 +112,12 @@ print("\nGenerating visualization...")
 plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
-# ========== 创建组合图 Create Combined Figure ==========
+# 创建组合图 Create Combined Figure
 # Create figure with 1 row and 2 columns: left for trends, right for pie chart
 # 创建1行2列的图形：左边是趋势图，右边是饼图
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
 
-# ========== 左图：时间趋势 Left: Temporal Trends ==========
+# 左图：时间趋势 Left: Temporal Trends 
 # Define colors and markers for each drug
 # 为每种药物定义颜色和标记
 colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6']
@@ -148,7 +141,7 @@ ax1.legend(loc='best', fontsize=11, framealpha=0.95, edgecolor='black')
 ax1.grid(alpha=0.3, linestyle='--')
 ax1.tick_params(labelsize=11)
 
-# ========== 右图：饼图 Right: Pie Chart ==========
+# 右图：饼图 Right: Pie Chart 
 # Get top 5 drug counts 
 # 获取前5种药物的计数
 top_5 = drug_counts.head(5)
@@ -183,11 +176,11 @@ for autotext in autotexts:
 ax2.set_title('Distribution of Top 5 Drugs', 
              fontsize=16, fontweight='bold', pad=15)
 
-# ========== 添加总标题 Add Overall Title ==========
+# 添加总标题 Add Overall Title
 fig.suptitle('Chagas Disease Drug Analysis: Trends and Distribution', 
              fontsize=18, fontweight='bold', y=0.98)
 
-# ========== 保存图表 Save Figure ==========
+# 保存图表 Save Figure 
 plt.tight_layout()
 plt.savefig("CleanedDataPlt/drug_trends_and_pie.jpg", dpi=300, bbox_inches='tight')
 plt.close()
