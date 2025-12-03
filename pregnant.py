@@ -48,7 +48,7 @@ plt.tight_layout()
 #保存图片Save plot
 pie_path = os.path.join(output, "pregnancy_inclusion_pie.png")
 plt.savefig(pie_path, dpi=300)
-plt.show()
+plt.close(fig1) 
 
 #按疾病统计的柱状图 Bar chart: inclusion by disease
 df_included = df[df["preg_status"] == "INCLUDED"].copy()
@@ -80,7 +80,7 @@ plt.tight_layout()
 #保存图片 Save plot
 bar_path = os.path.join(output, "inclusion_by_disease_bar.png")
 plt.savefig(bar_path, dpi=300)
-plt.show()
+plt.close(fig2)
 
 #各试验阶段孕妇纳入比例折线图 Inclusion rate by phase Line chart
 phase_col = "phase"
@@ -133,6 +133,6 @@ plt.tight_layout()
 #保存图片Save plot
 linePath = os.path.join(output, "inclusion_by_phase_line.png")
 plt.savefig(linePath, dpi=300)
-plt.show()
+plt.close(fig3)
 
 print(f"Plots saved to '{output}' directory")
