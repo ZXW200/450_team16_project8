@@ -215,7 +215,7 @@ ax.text(0.02, 0.98, legend_text,
 # Save figure with high resolution
 # 以高分辨率保存图形
 plt.tight_layout()
-plt.savefig("CleanedDataPlt/collaboration_network.jpg", dpi=300, bbox_inches='tight')
+plt.savefig("CleanedDataPlt/network.jpg", dpi=300, bbox_inches='tight')
 plt.close()
 
 print("Network visualization completed successfully!")
