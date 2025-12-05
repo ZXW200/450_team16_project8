@@ -91,7 +91,7 @@ for i, (title, prefix) in enumerate(groups.items()):
 
 # 保存图片 Save plot
 plt.tight_layout()
-plt.savefig("CleanedDataPlt/coefficients_plot_balanced.jpg", dpi=300, bbox_inches='tight')
+plt.savefig("CleanedDataPlt/coefficients.jpg", dpi=300, bbox_inches='tight')
 plt.close()
 
 # 模型评估
