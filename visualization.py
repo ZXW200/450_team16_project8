@@ -219,7 +219,7 @@ if len(all_burden_df) > 0:
                alpha=0.6, label=f'High Burden Avg: {high_burden_avg:.1f}%')
 
 plt.tight_layout()
-plt.savefig('CleanedDataPlt/industry_burden_alignment.jpg', dpi=300, bbox_inches='tight')
+plt.savefig('CleanedDataPlt/industry_burden.jpg', dpi=300, bbox_inches='tight')
 plt.close()
 
 # 计算统计数据用于打印 Calculate statistics for printing
