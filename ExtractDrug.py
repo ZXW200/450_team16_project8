@@ -182,7 +182,7 @@ fig.suptitle('Chagas Disease Drug Analysis: Trends and Distribution',
 
 # 保存图表 Save Figure 
 plt.tight_layout()
-plt.savefig("CleanedDataPlt/drug_trends_and_pie.jpg", dpi=300, bbox_inches='tight')
+plt.savefig("CleanedDataPlt/drug_trends.jpg", dpi=300, bbox_inches='tight')
 plt.close()
 
 print("\nVisualization completed successfully!")
