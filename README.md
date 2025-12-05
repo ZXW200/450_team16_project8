@@ -29,7 +29,7 @@ python Main.py
 | `DataFit.py` | `CleanedData/logit_results.csv` - Regression coefficients<br>`CleanedDataPlt/coefficients.jpg` - Coefficient plot |
 | `ExtractDrug.py` | `CleanedData/chagas_drugs.csv` - Drug frequency<br>`CleanedData/chagas_drug_trends.csv` - Drug temporal trends<br>`CleanedDataPlt/drug_trends.jpg` - Drug trend chart |
 | `Network.py` | `CleanedData/network_statistics.csv` - Network metrics<br>`CleanedDataPlt/network.jpg` - Collaboration network |
-| `visualization.py` | `CleanedDataPlt/sponsor_distribution.jpg` - Sponsor distribution<br>`CleanedDataPlt/industry_region.jpg` - Industry regional distribution<br>`CleanedDataPlt/world_heatmap.jpg` - World heatmap<br>`CleanedDataPlt/industry_burden_alignment.jpg` - Industry-burden alignment |
+| `visualization.py` | `CleanedDataPlt/sponsor_distribution.jpg` - Sponsor distribution<br>`CleanedDataPlt/industry_region.jpg` - Industry regional distribution<br>`CleanedDataPlt/world_heatmap.jpg` - World heatmap<br>`CleanedDataPlt/industry_burden.jpg` - Industry-burden alignment |
 | `pregnant.py` | `CleanedDataPlt/pregnancy_inclusion.png` - Inclusion pie chart<br>`CleanedDataPlt/inclusion_disease.png` - Disease bar chart<br>`CleanedDataPlt/inclusion_phase.png` - Phase line chart |
 
 ## Documentation
