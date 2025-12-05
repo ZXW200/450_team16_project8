@@ -46,7 +46,7 @@ ax1.set_title("Pregnancy inclusion status (all trials)")
 ax1.axis("equal")
 plt.tight_layout()
 #保存图片Save plot
-pie_path = os.path.join(output, "pregnancy_inclusion_pie.png")
+pie_path = os.path.join(output, "pregnancy_inclusion.png")
 plt.savefig(pie_path, dpi=300)
 plt.close(fig1) 
 
@@ -78,7 +78,7 @@ for label in ax2.get_xticklabels():
 
 plt.tight_layout()
 #保存图片 Save plot
-bar_path = os.path.join(output, "inclusion_by_disease_bar.png")
+bar_path = os.path.join(output, "inclusion_disease.png")
 plt.savefig(bar_path, dpi=300)
 plt.close(fig2)
 
@@ -131,8 +131,9 @@ for label in ax3.get_xticklabels():
 
 plt.tight_layout()
 #保存图片Save plot
-linePath = os.path.join(output, "inclusion_by_phase_line.png")
+linePath = os.path.join(output, "inclusion_phase.png")
 plt.savefig(linePath, dpi=300)
 plt.close(fig3)
+
 
 print(f"Plots saved to '{output}' directory")
