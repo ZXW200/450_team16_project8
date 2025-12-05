@@ -32,6 +32,4 @@ python Main.py
 | `visualization.py` | `CleanedDataPlt/sponsor_distribution.jpg` - Sponsor distribution<br>`CleanedDataPlt/industry_region.jpg` - Industry regional distribution<br>`CleanedDataPlt/world_heatmap.jpg` - World heatmap<br>`CleanedDataPlt/industry_burden.jpg` - Industry-burden alignment |
 | `pregnant.py` | `CleanedDataPlt/pregnancy_inclusion.png` - Inclusion pie chart<br>`CleanedDataPlt/inclusion_disease.png` - Disease bar chart<br>`CleanedDataPlt/inclusion_phase.png` - Phase line chart |
 
-## Documentation
 
-For detailed code documentation, see `CODE_DOCUMENTATION.md`
