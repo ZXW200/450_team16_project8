@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 from Mapping import COUNTRY_CODE, HIGH_BURDEN_COUNTRIES
 import geopandas as gpd
-
+from scipy.stats import chi2_contingency
 # 创建输出文件夹 Create output folder
 os.makedirs("CleanedDataPlt", exist_ok=True)
 
