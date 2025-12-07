@@ -74,7 +74,8 @@ print(f"Total collaborative connections: {G.number_of_edges()}")
 # Calculate degree (number of partners) for each country
 # 计算每个国家的度（合作伙伴数量）
 degree_dict = dict(G.degree())
-
+# Calculate degree for each country
+degree_dict = dict(G.degree())
 # Calculate weighted degree (total number of collaborations)
 # 计算加权度（总合作次数）
 weighted_degree = {}
@@ -96,6 +97,7 @@ if len(G.nodes()) > 0:
     network_stats = pd.DataFrame({
         'Country': list(G.nodes()),
         'Number of partners': [degree_dict[n] for n in G.nodes()],  # 合作伙伴数
+        'Degree Centrality': [deg_centrality[n] for n in G.nodes()], #度中心性
         'Total number of partnerships': [weighted_degree[n] for n in G.nodes()],  # 总合作次数
         'Mediation centrality': [betweenness[n] for n in G.nodes()]  # 中介中心性
     })
