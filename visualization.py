@@ -198,6 +198,9 @@ if len(all_burden_df) > 0:
     bars = ax.barh(all_burden_df['country'], all_burden_df['percentage'], 
                    color=colors, edgecolor='black', linewidth=1, alpha=0.85)
     
+    for bar, pct in zip(bars, all_burden_df['percentage']):
+        ax.text(bar.get_width() + 0.5,bar.get_y() + bar.get_height() / 2,f'{pct:.1f}%',va='center', ha='left',fontsize=9)
+        
     ax.set_xlabel('Industry Funding %', fontsize=13, fontweight='bold')
     ax.set_ylabel('Country', fontsize=13, fontweight='bold')
     ax.set_title('Industry Funding Percentage by Country', 
