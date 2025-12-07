@@ -230,7 +230,14 @@ high_burden_count = sum(industry_country_counts.get(c, 0) for c in HIGH_BURDEN_C
 other_count = total_industry - high_burden_count
 high_burden_all_count = sum(all_country_counts.get(c, 0) for c in HIGH_BURDEN_COUNTRIES)
 other_all_count = total_all - high_burden_all_count
+# Chi-square test for independence
+table = [
+    [high_burden_count, other_count],
+    [high_burden_all_count - high_burden_count, other_all_count - other_count]
+]
 
+# calculate chi-square
+chi2, p, _, _ = chi2_contingency(table)
 # 打印统计信息 Print statistics
 print(f"\nIndustry funding analysis / 产业界资助分析:")
 print(f"  Total Industry trials: {len(industry_df)} ({len(industry_df)/len(df)*100:.2f}%)")
